@@ -1,0 +1,528 @@
+---
+title: "Jaccard_distance_manuscript"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(vegan)
+library(RColorBrewer)
+```
+
+
+
+```{r}
+
+#Scaffold level - comparing UC samples over time, including stock and all mouse samples over time - bray curtis
+#input is coverage normalized matrix
+
+my.data.UC <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/uc_phage/matrix_UC_scaf.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("gavage", 9), rep("DSS washout",6),rep("stock",5)) 
+colors=c(rep("dark green",8),rep("purple",9), rep("orange",6), rep("red",5))
+
+
+treatment.df.UC <-data.frame(treatment=c(rep("colonization",8),rep("gavage",9),rep("DSS",6),rep ("stock",5)), my.data.UC)
+
+treatment.df.UC
+
+my.matrix.UC <- as.matrix(my.data.UC)
+
+NMDS.UC <- metaMDS(my.matrix.UC, k=2)
+
+
+ordiplot(NMDS.UC,type="n")
+
+points(NMDS.UC, col=colors, pch=16 )
+
+```
+
+
+```{r}
+#VC level - comparing UC samples over time, including stock and all mouse samples over time - bray curtis 
+
+#Scaffold level - comparing UC stock over time (all time period)
+my.data.UC.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/uc_phage/matrix_vc_uc.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("gavage", 9), rep("DSS washout",6),rep("stock",5)) 
+colors=c(rep("dark green",8),rep("purple",9), rep("orange",6), rep("red",5))
+
+
+treatment.df.UC.vc <-data.frame(treatment=c(rep("colonization",8),rep("gavage",9),rep("DSS",6),rep ("stock",5)), my.data.UC.vc)
+
+treatment.df.UC.vc
+
+my.matrix.UC.vc <- as.matrix(my.data.UC.vc)
+
+NMDS.UC.vc <- metaMDS(my.matrix.UC.vc, k=2)
+
+
+ordiplot(NMDS.UC.vc,type="n")
+
+points(NMDS.UC.vc, col=colors, pch=16 )
+```
+
+
+```{r}
+#VC level - comparing UC samples over time, including stock and all mouse samples over time - jaccard  
+
+my.data.UC.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/uc_phage/matrix_vc_uc.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("gavage", 9), rep("DSS washout",6),rep("stock",5)) 
+colors=c(rep("dark green",8),rep("purple",9), rep("orange",6), rep("red",5))
+
+
+treatment.df.UC.vc <-data.frame(treatment=c(rep("colonization",8),rep("gavage",9),rep("DSS",6),rep ("stock",5)), my.data.UC.vc)
+
+treatment.df.UC.vc
+
+my.matrix.UC.vc <- as.matrix(my.data.UC.vc)
+jaccard.distance.UC.vc <-vegdist(my.matrix.UC.vc, method = "jaccard", binary = TRUE)
+
+NMDS.UC.vc.jaccard <- metaMDS(jaccard.distance.UC.vc, k=2)
+
+
+ordiplot(NMDS.UC.vc.jaccard,type="n")
+
+points(NMDS.UC.vc.jaccard, col=colors, pch=16 )
+```
+
+
+
+```{r}
+#Scaffold level - comparing UC samples over time, including stock and all mouse samples over time - jaccard  
+
+my.data.UC <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/uc_phage/matrix_UC_scaf.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("gavage", 9), rep("DSS washout",6),rep("stock",5)) 
+colors=c(rep("dark green",8),rep("purple",9), rep("orange",6), rep("red",5))
+
+
+treatment.df.UC <-data.frame(treatment=c(rep("colonization",8),rep("gavage",9),rep("DSS",6),rep ("stock",5)), my.data.UC)
+
+treatment.df.UC
+
+
+my.matrix.UC <- as.matrix(my.data.UC)
+jaccard.distance.UC <-vegdist(my.matrix.UC, method = "jaccard", binary = TRUE)
+
+
+NMDS.UC.jaccard <- metaMDS(jaccard.distance.UC, k=2)
+
+
+ordiplot(NMDS.UC.jaccard,type="n")
+
+points(NMDS.UC.jaccard, col=colors, pch=16 )
+
+```
+
+
+```{r}
+#Same as above but combining gavage and DSS  - UC - scaffolds - bray-curtis 
+my.data.UC.pre.post <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/uc_phage/matrix_UC_scaf.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep("stock",5)) 
+colors=c(rep("dark green",8),rep("orange",15) ,rep("red",5))
+
+
+treatment.df.UC.pre.post <-data.frame(treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep ("stock",5)), my.data.UC.pre.post)
+
+treatment.df.UC.pre.post
+
+my.matrix.UC.pre.post <- as.matrix(my.data.UC.pre.post)
+
+NMDS.UC.pre.post <- metaMDS(my.matrix.UC.pre.post, k=2)
+
+
+ordiplot(NMDS.UC.pre.post,type="n")
+
+points(NMDS.UC.pre.post, col=colors, pch=16 )
+
+```
+
+```{r}
+#Same as above but combining gavage and DSS period  - UC - scaffolds - jaccard
+my.data.UC.pre.post <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/uc_phage/matrix_UC_scaf.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep("stock",5)) 
+colors=c(rep("dark green",8),rep("orange",15) ,rep("red",5))
+
+
+treatment.df.UC.pre.post <-data.frame(treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep ("stock",5)), my.data.UC.pre.post)
+
+treatment.df.UC.pre.post
+
+
+my.matrix.UC.pre.post <- as.matrix(my.data.UC.pre.post)
+jaccard.distance.UC.pre.post <-vegdist(my.matrix.UC.pre.post, method = "jaccard", binary = TRUE)
+
+
+NMDS.UC.jaccard.pre.post <- metaMDS(jaccard.distance.UC.pre.post, k=2)
+
+
+
+ordiplot(NMDS.UC.jaccard.pre.post,type="n")
+
+points(NMDS.UC.jaccard.pre.post, col=colors, pch=16 )
+
+```
+
+
+```{r}
+#Same as above but combining gavage and DSS period  - UC - VC - bray-curtis
+
+my.data.UC.pre.post.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/uc_phage/matrix_vc_uc.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep("stock",5)) 
+colors=c(rep("dark green",8),rep("orange",15) ,rep("red",5))
+
+
+treatment.df.UC.pre.post.vc <-data.frame(treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep ("stock",5)), my.data.UC.pre.post.vc)
+
+treatment.df.UC.pre.post.vc
+
+my.matrix.UC.pre.post.vc <- as.matrix(my.data.UC.pre.post.vc)
+
+NMDS.UC.pre.post.vc <- metaMDS(my.matrix.UC.pre.post.vc, k=2)
+
+
+ordiplot(NMDS.UC.pre.post.vc,type="n")
+
+points(NMDS.UC.pre.post.vc, col=colors, pch=16 )
+```
+
+```{r}
+#Same as above but combining gavage and DSS period  - UC - VC - jaccard
+
+my.data.UC.pre.post.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/uc_phage/matrix_vc_uc.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep("stock",5)) 
+colors=c(rep("dark green",8),rep("orange",15) ,rep("red",5))
+
+
+treatment.df.UC.pre.post.vc <-data.frame(treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep ("stock",5)), my.data.UC.pre.post.vc)
+
+treatment.df.UC.pre.post.vc
+
+
+my.matrix.UC.vc.pre.post <- as.matrix(my.data.UC.pre.post.vc)
+jaccard.distance.UC.vc.pre.post <-vegdist(my.matrix.UC.vc.pre.post, method = "jaccard", binary = TRUE)
+
+NMDS.UC.vc.jaccard.pre.post <- metaMDS(jaccard.distance.UC.vc.pre.post, k=2)
+
+
+ordiplot(NMDS.UC.vc.jaccard.pre.post,type="n")
+
+points(NMDS.UC.vc.jaccard.pre.post, col=colors, pch=16 )
+```
+
+
+
+
+
+
+
+```{r}
+#Comparing healthy stock to mouse samples over time - bray-curtis - scaffolds
+
+
+my.data.healthy <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/healthy_Phage/matrix_healthy.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep("stock",4)) 
+colors=c(rep("dark green",6),rep("purple",9), rep("orange",5), rep("blue",4))
+
+
+treatment.df.healthy <-data.frame(treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep ("stock",4)), my.data.healthy)
+
+treatment.df.healthy
+
+my.matrix.healthy <- as.matrix(my.data.healthy)
+
+NMDS.healthy <- metaMDS(my.matrix.healthy, k=2)
+
+
+ordiplot(NMDS.healthy,type="n")
+
+points(NMDS.healthy, col=colors, pch=16 )
+```
+
+
+```{r}
+#Comparing healthy stock to mouse samples over time - bray-curtis - vc
+
+my.data.healthy.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/healthy_phage/matrix_vc_healthy_phage.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep("stock",4)) 
+colors=c(rep("dark green",6),rep("purple",9), rep("orange",5), rep("blue",4))
+
+
+treatment.df.healthy.vc <-data.frame(treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep ("stock",4)), my.data.healthy.vc)
+
+treatment.df.healthy.vc
+
+my.matrix.healthy.vc <- as.matrix(my.data.healthy.vc)
+
+NMDS.healthy.vc <- metaMDS(my.matrix.healthy.vc, k=2)
+
+
+ordiplot(NMDS.healthy.vc,type="n")
+
+points(NMDS.healthy.vc, col=colors, pch=16 )
+```
+
+
+```{r}
+#Comparing healthy stock to mouse samples over time - jaccard - vc
+
+my.data.healthy.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/healthy_phage/matrix_vc_healthy_phage.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep("stock",4)) 
+colors=c(rep("dark green",6),rep("purple",9), rep("orange",5), rep("blue",4))
+
+
+treatment.df.healthy.vc <-data.frame(treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep ("stock",4)), my.data.healthy.vc)
+
+treatment.df.healthy.vc
+
+my.matrix.healthy.vc <- as.matrix(my.data.healthy.vc)
+jaccard.distance.healthy.vc <-vegdist(my.matrix.healthy.vc, method = "jaccard", binary = TRUE, diag=FALSE, upper=FALSE, na.rm = FALSE,)
+
+
+NMDS.healthy.jaccard.vc <- metaMDS(jaccard.distance.healthy.vc, k=2)
+
+
+
+ordiplot(NMDS.healthy.jaccard.vc,type="n")
+
+points(NMDS.healthy.jaccard.vc, col=colors, pch=16 )
+```
+
+
+
+```{r}
+#Comparing healthy stock to mouse samples over time - jaccard - scaffolds
+
+#Comparing healthy stock to mouse samples over time (including all time periods )
+my.data.healthy <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/healthy_Phage/matrix_healthy.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep("stock",4)) 
+colors=c(rep("dark green",6),rep("purple",9), rep("orange",5), rep("blue",4))
+
+
+treatment.df.healthy.jaccard <-data.frame(treatment=c(rep("colonization",6),rep("gavage",9),rep("DSS",5),rep ("stock",4)), my.data.healthy)
+
+treatment.df.healthy.jaccard
+
+my.matrix.healthy <- as.matrix(my.data.healthy)
+jaccard.distance.healthy <-vegdist(my.matrix.healthy, method = "jaccard", binary = TRUE)
+
+NMDS.healthy.jaccard <- metaMDS(jaccard.distance.healthy, k=2)
+
+
+
+ordiplot(NMDS.healthy.jaccard,type="n")
+
+points(NMDS.healthy.jaccard, col=colors, pch=16 )
+
+
+```
+
+
+
+
+
+```{r}
+
+#Comparing healthy stock to mouse samples over time - bray-curtis- scaffolds
+
+#Comparing healthy stock to mouse samples over time (including all time periods )
+
+my.data.healthy.pre.post.scaf <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/healthy_Phage/matrix_healthy.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",6),rep("post gavage", 14) ,rep("stock",4)) 
+colors=c(rep("dark green",6),rep("orange",14), rep("blue",4))
+
+
+treatment.df.healthy.pre.post <-data.frame(treatment=c(rep("colonization",6),rep("post gavage",14),rep ("stock",4)), my.data.healthy.pre.post.scaf)
+
+treatment.df.healthy.pre.post
+
+treatment.df.healthy.pre.post
+
+my.matrix.healthy.pre.post <- as.matrix(my.data.healthy.pre.post.scaf)
+
+
+NMDS.healthy.pre.post <- metaMDS(my.matrix.healthy.pre.post, k=2)
+
+
+
+
+
+ordiplot(NMDS.healthy.pre.post,type="n")
+
+points(NMDS.healthy.pre.post, col=colors, pch=16 )
+```
+
+
+```{r}
+#Comparing healthy stock to mouse samples over time - jaccard - scaffolds
+#combining phage gavagae and DSS washout 
+
+my.data.healthy.pre.post.scaf <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/scaffolds/healthy_Phage/matrix_healthy.csv", row.names = 1)
+
+
+
+treatment=c(rep("colonization",6),rep("post gavage", 14) ,rep("stock",4)) 
+colors=c(rep("dark green",6),rep("orange",14), rep("blue",4))
+
+
+treatment.df.healthy.pre.post.scaf <-data.frame(treatment=c(rep("colonization",6),rep("post gavage",14),rep ("stock",4)), my.data.healthy.pre.post.scaf)
+
+treatment.df.healthy.pre.post.scaf
+
+my.matrix.healthy.pre.post.scaf <- as.matrix(my.data.healthy.pre.post.scaf)
+jaccard.distance.healthy.pre.post.scaf <-vegdist(my.matrix.healthy.pre.post.scaf, method = "jaccard", binary = TRUE, diag=FALSE, upper=FALSE, na.rm=FALSE,)
+
+
+NMDS.healthy.jaccard.pre.post.scaf <- metaMDS(jaccard.distance.healthy.pre.post.scaf, k=2)
+
+
+ordiplot(NMDS.healthy.jaccard.pre.post.scaf,type="n")
+
+points(NMDS.healthy.jaccard.pre.post.scaf, col=colors, pch=16 )
+```
+
+
+
+
+
+
+
+```{r}
+#Comparing healthy stock to mouse samples over time - bray-curtis - vc
+#combining phage gavagae and DSS washout 
+
+
+my.data.healthy.pre.post.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/healthy_phage/matrix_vc_healthy_phage.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",6),rep("post gavage", 14) ,rep("stock",4)) 
+colors=c(rep("dark green",6),rep("orange",14), rep("blue",4))
+
+
+treatment.df.healthy.pre.post.vc <-data.frame(treatment=c(rep("colonization",6),rep("post gavage",14),rep ("stock",4)), my.data.healthy.pre.post.vc)
+
+treatment.df.healthy.pre.post.vc
+
+my.matrix.healthy.pre.post.vc <- as.matrix(my.data.healthy.pre.post.vc)
+
+
+NMDS.healthy.pre.post.vc <- metaMDS(my.matrix.healthy.pre.post.vc, k=2)
+
+
+ordiplot(NMDS.healthy.pre.post.vc,type="n")
+
+
+
+points(NMDS.healthy.pre.post.vc, col=colors, pch=16)
+
+
+```
+
+
+```{r}
+#Comparing healthy stock to mouse samples over time - bray-curts - vc
+#combining phage gavagae and DSS washout 
+my.data.healthy.pre.post.vc <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/matrices/rel_abundance_matrix/vc/healthy_phage/matrix_vc_healthy_phage.csv", row.names = 1)
+
+
+treatment=c(rep("colonization",6),rep("post gavage", 14) ,rep("stock",4)) 
+colors=c(rep("dark green",6),rep("orange",14), rep("blue",4))
+
+
+treatment.df.healthy.pre.post.vc <-data.frame(treatment=c(rep("colonization",6),rep("post gavage",14),rep ("stock",4)), my.data.healthy.pre.post.vc)
+
+treatment.df.healthy.pre.post.vc
+
+my.matrix.healthy.pre.post.vc <- as.matrix(my.data.healthy.pre.post.vc)
+jaccard.distance.healthy.pre.post.vc <-vegdist(my.matrix.healthy.pre.post.vc, method = "jaccard", binary = TRUE, diag=FALSE, upper=FALSE, na.rm=FALSE,)
+
+
+NMDS.healthy.jaccard.pre.post.vc <- metaMDS(jaccard.distance.healthy.pre.post.vc, k=2)
+
+
+ordiplot(NMDS.healthy.jaccard.pre.post.vc,type="n")
+
+points(NMDS.healthy.jaccard.pre.post.vc, col=colors, pch=16 )
+```
+
+
+
+```{r}
+#Calclulating bray-curtis distance (scaffold level)
+BC.UC <- vegdist(my.matrix.UC, method ="bray",binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE,)
+BC.healthy <-vegdist(my.matrix.healthy, method ="bray",binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE,)
+
+BC.UC
+write.csv(as.matrix(BC.healthy), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/bray_curtis/healthy_bray_scaffolds.csv")
+write.csv(as.matrix(BC.UC), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/bray_curtis/UC_bray_scaf.csv")
+```
+
+
+
+```{r}
+#Calclulating bray-curtis distance (VC level)
+BC.UC.vc <- vegdist(my.matrix.UC.vc, method ="bray",binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE,)
+BC.healthy.vc <-vegdist(my.matrix.healthy.vc, method ="bray",binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE,)
+
+BC.healthy.vc
+write.csv(as.matrix(BC.healthy.vc), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/bray_curtis/healthy_vc_bray.csv")
+write.csv(as.matrix(BC.UC.vc), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/bray_curtis/uc_vc_bray.csv")
+```
+
+
+```{r}
+#Calculating jaccard distance (scaffold level)
+
+jaccard.UC <- vegdist(my.matrix.UC, method ="jaccard",binary=TRUE, diag=FALSE, upper=FALSE, na.rm = TRUE,)
+jaccard.healthy <-vegdist(my.matrix.healthy, method ="jaccard",binary=TRUE, diag=FALSE, upper=FALSE, na.rm = TRUE,)
+
+write.csv(as.matrix(jaccard.healthy), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/jaccard/healthy_scaffolds_jaccard.csv")
+write.csv(as.matrix(jaccard.UC), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/jaccard/uc_scaffolds_jaccard.csv")
+```
+
+
+```{r}
+#Calculating jaccard distance (VC level)
+jaccard.UC.vc <- vegdist(my.data.UC.vc, method = "jaccard", binary = TRUE, diag=FALSE, upper = FALSE, na.rm = FALSE)
+jaccard.healthy.vc <- vegdist(my.data.healthy.vc, method= "jaccard", binary= TRUE, diag=FALSE, upper=FALSE, na.rm=FALSE)
+jaccard.healthy.vc
+
+write.csv(as.matrix(jaccard.distance.healthy.vc),"/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/jaccard/healthy_vc_jaccard.csv")
+write.csv(as.matrix(jaccard.distance.UC.vc), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/distances/jaccard/uc_jaccard_vc.csv")
+```
+
+
+

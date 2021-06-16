@@ -1,0 +1,439 @@
+---
+title: "col_period_deseq2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r}
+library(DESeq2)
+library(dplyr)
+library(tidyverse)
+```
+
+
+
+```{r}
+
+raw_counts <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/matrix_read_counts_col.csv", header = TRUE)
+
+raw_counts
+
+#switching the columns and rows so that each row is a different contig and each column is a different sample 
+switch_matrix <-  t(raw_counts)
+
+
+
+switch_matrix
+
+write.csv(switch_matrix, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/switched_matrix_col.csv") 
+
+
+
+```
+
+
+
+```{r}
+#reading in manually edited switched matrix
+raw_counts2 <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/switched_matrix_col.csv", check.names = FALSE)
+raw_counts2
+```
+
+
+
+```{r}
+
+
+colnames(raw_counts2)[1] <- "contig_ID"
+
+raw_counts2
+
+
+
+#naming that column "contig_ID"
+
+contig_ID <-  raw_counts2$contig_ID
+
+#Now I am generating a "sample index" so I can exclude "contig_ID" from our matrix 
+
+sampleindex <- grepl("\\d", colnames(raw_counts2))
+#sampleindex
+#converting to a matrix and only including the sample index columns 
+raw_counts_matrix <- as.matrix(raw_counts2[,sampleindex])
+raw_counts_matrix
+
+
+rownames(raw_counts_matrix) <- contig_ID
+
+head(raw_counts_matrix)
+
+write.csv(raw_counts_matrix, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/raw_counts_matrix_col.csv")
+
+
+
+
+
+```
+
+
+```{r}
+sample_mapping <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/sample_mapping_deseq_col.csv")
+```
+
+
+
+```{r}
+#Now need to change the sample mapping data so that it can be used by DEseq2
+sample_mapping
+rownames(sample_mapping) <- sample_mapping$Sample
+
+
+
+#for now, I am only concerned with treatment differences and Sample Period differences, so I will just keep those columns 
+keep <- c("Treatment", "Period")
+
+sample_mapping <- sample_mapping[,keep]
+
+colnames(sample_mapping) <- c("Treatment", "Period")
+
+sample_mapping <- as.matrix(sample_mapping)
+
+colnames(raw_counts_matrix)
+row.names(sample_mapping)
+
+#Put the columns of the count data in the same order as rows names of the sample mapping, then make sure it worked (TRUE)
+
+raw_counts_matrix <- raw_counts_matrix[, unique(rownames(sample_mapping))]
+
+
+all(colnames(raw_counts_matrix) == rownames(sample_mapping))
+
+sample_mapping
+raw_counts_matrix
+
+#True if alignment is correct
+
+
+
+```
+
+
+```{r}
+#creating deseq2 data object 
+deseq2Data <- DESeqDataSetFromMatrix(countData=raw_counts_matrix, colData=sample_mapping, design= ~  Treatment)
+```
+
+
+```{r}
+deseq2Data <- estimateSizeFactors(deseq2Data, type= "poscounts")
+
+deseq2Data <- DESeq(deseq2Data)
+```
+
+```{r}
+
+resultsNames(deseq2Data)
+deseq2Results <- results(deseq2Data)
+
+summary(deseq2Results)
+deseq2Results
+plotMA(deseq2Results)
+
+```
+
+
+```{r}
+resultsUCHP <- results(deseq2Data, contrast = c("Treatment", "UCP", "HP"), alpha = 0.001, lfcThreshold = 1)
+summary(resultsUCHP)
+
+resultsUCNP <- results(deseq2Data, contrast = c("Treatment", "UCP", "NP"), alpha = 0.001, lfcThreshold = 1)
+summary(resultsUCNP)
+
+resultsHPNP <- results(deseq2Data, contrast = c("Treatment", "HP", "NP"),alpha = 0.001, lfcThreshold = 1)
+summary(resultsHPNP)
+
+                       
+```
+
+```{r}
+contig_metadata <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/metadata_updated.csv")
+
+contig_metadata
+
+```
+
+
+
+
+
+
+```{r}
+#healthy phage vs. PBS comparison 
+
+sig_results_HPNP <-  subset(resultsHPNP, padj < 0.001)
+#now only taking only the values that meet the p-value threshold
+
+df_HPNP <- as.data.frame(sig_results_HPNP)
+df_HPNP <- df_HPNP %>% 
+  rownames_to_column(var = "ContigName")
+#converting results table and naming first column so results table can be annotated
+
+
+
+df_HPNP_ordered <- df_HPNP[order(df_HPNP$pvalue),]
+
+
+
+
+annotated_HPNP <- left_join(df_HPNP_ordered, contig_metadata, by=c("ContigName"="ContigName"))
+
+annotated_HPNP
+
+
+
+write_csv(annotated_HPNP, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/output_unformatted/HPNP_col.csv")
+
+
+annotated_HPNP_col_topcrispr <- subset(annotated_HPNP, !is.na(annotated_HPNP$CRISPRHost))
+
+annotated_HPNP_col_topcrispr
+
+write_csv(annotated_HPNP_col_topcrispr, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/HPNP_crispr.csv")
+
+
+annotated_HPNP_col_AMGs <- subset(annotated_HPNP, !is.na(annotated_HPNP$AMG))
+
+annotated_HPNP_col_AMGs
+
+write_csv(annotated_HPNP_col_AMGs, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/AMGs/HPNP_col_AMGs.csv")
+
+```
+```{r}
+#Counting numbers of each AMG upregulated in each comparison and plotting using a pie chart
+
+subset_col_HPNP_AMGs <-  subset(annotated_HPNP_col_AMGs, log2FoldChange > 0)
+
+subset_col_HPNP_AMGs_split <- strsplit(subset_col_HPNP_AMGs$AMG, split = "++", fixed = TRUE)
+
+
+subset_col_HPNP_AMGs_split_df <- data_frame(v1= rep(subset_col_HPNP_AMGs$ContigName, sapply(subset_col_HPNP_AMGs_split, length)), v2= unlist(subset_col_HPNP_AMGs_split))
+
+subset_col_HPNP_AMGs_split_df
+
+table_AMGs_HPNP_AMGs_col <- table(subset_col_HPNP_AMGs_split_df$v2) 
+df_AMG_freq_HPNP_col <- as.data.frame(table_AMGs_HPNP_AMGs_col)
+
+colnames(df_AMG_freq_HPNP_col)[1] <- "AMG"
+
+df_AMG_freq_HPNP_col
+
+write.csv(df_AMG_freq_HPNP_col, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/AMG/num_amgs_upregulated_hpnp_col.csv" )
+
+pie_AMGs_HPNP_col <- ggplot(df_AMG_freq_HPNP_col, aes(x="", y=Freq, fill=AMG))+
+geom_bar(width = 1, stat = "identity", color= "white") + 
+coord_polar("y", start=0) +
+theme_void() 
+pie_AMGs_HPNP_col
+
+#NO UPREGULATED SCAFFOLDS WITH AMGS IN THIS COMPARISON SO NO OUTPUT COULD BE MADE
+```
+
+
+
+
+
+
+
+```{r}
+#UC phage vs. PBS comparison 
+
+sig_results_UCNP <-  subset(resultsUCNP, padj < 0.001)
+#now only taking only the values that meet the p-value threshold
+
+df_UCNP <- as.data.frame(sig_results_UCNP)
+df_UCNP <- df_UCNP %>% 
+  rownames_to_column(var = "ContigName")
+#converting results table and naming first column so results table can be annotated
+
+
+
+df_UCNP_ordered <- df_UCNP[order(df_UCNP$pvalue),]
+
+
+
+
+annotated_UCNP <- left_join(df_UCNP_ordered, contig_metadata, by=c("ContigName"="ContigName"))
+
+annotated_UCNP
+
+
+
+write_csv(annotated_UCNP, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/output_unformatted/UCNP.csv")
+
+annotated_UCNP_col_topcrispr <- subset(annotated_UCNP, !is.na(annotated_UCNP$CRISPRHost))
+
+annotated_UCNP_col_topcrispr
+
+write_csv(annotated_UCNP_col_topcrispr, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/UCNP_crispr.csv")
+
+
+annotated_UCNP_col_AMGs <- subset(annotated_UCNP, !is.na(annotated_UCNP$AMG))
+
+annotated_UCNP_col_AMGs
+
+write_csv(annotated_UCNP_col_AMGs, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/AMGs/UCNP_col_AMGs.csv")
+
+
+
+```
+
+```{r}
+#Counting numbers of each AMG upregulated in each comparison and plotting using a pie chart
+
+subset_col_UCNP_AMGs <-  subset(annotated_UCNP_col_AMGs, log2FoldChange > 0)
+
+subset_col_UCNP_AMGs_split <- strsplit(subset_col_UCNP_AMGs$AMG, split = "++", fixed = TRUE)
+
+
+subset_col_UCNP_AMGs_split_df <- data_frame(v1= rep(subset_col_UCNP_AMGs$ContigName, sapply(subset_col_UCNP_AMGs_split, length)), v2= unlist(subset_col_UCNP_AMGs_split))
+
+subset_col_UCNP_AMGs_split_df
+
+table_AMGs_UCNP_AMGs_col <- table(subset_col_UCNP_AMGs_split_df$v2) 
+df_AMG_freq_UCNP_col <- as.data.frame(table_AMGs_UCNP_AMGs_col)
+
+colnames(df_AMG_freq_UCNP_col)[1] <- "AMG"
+
+df_AMG_freq_UCNP_col
+
+write.csv(df_AMG_freq_UCNP_col, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/AMGs/num_upregulated_AMGs_UCNP_col.csv" )
+
+pie_AMGs_UCNP_col <- ggplot(df_AMG_freq_UCNP_col, aes(x="", y=Freq, fill=AMG))+
+geom_bar(width = 1, stat = "identity", color= "white") + 
+coord_polar("y", start=0) +
+theme_void() 
+pie_AMGs_UCNP_col
+
+```
+
+
+
+```{r}
+#UC phage vs. HP comparison 
+
+sig_results_UCHP <-  subset(resultsUCHP, padj < 0.001)
+#now only taking only the values that meet the p-value threshold
+
+df_UCHP <- as.data.frame(sig_results_UCHP)
+df_UCHP <- df_UCHP %>% 
+  rownames_to_column(var = "ContigName")
+#converting results table and naming first column so results table can be annotated
+
+
+
+df_UCHP_ordered <- df_UCHP[order(df_UCHP$pvalue),]
+
+
+
+
+annotated_UCHP <- left_join(df_UCHP_ordered, contig_metadata, by=c("ContigName"="ContigName"))
+
+annotated_UCHP
+
+
+
+write_csv(annotated_UCHP, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/output_unformatted/UCHP.csv")
+
+
+annotated_UCHP_col_topcrispr <- subset(annotated_UCHP, !is.na(annotated_UCHP$CRISPRHost))
+
+annotated_UCHP_col_topcrispr
+
+write_csv(annotated_UCHP_col_topcrispr, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/UCHP_crispr.csv")
+
+
+annotated_UCHP_col_AMGs <- subset(annotated_UCHP, !is.na(annotated_UCHP$AMG))
+
+annotated_UCHP_col_AMGs
+
+write_csv(annotated_UCHP_col_AMGs, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/AMGs/UCHP_col_AMGs.csv")
+
+
+```
+
+
+
+
+
+```{r}
+#Counting numbers of each AMG upregulated in each comparison and plotting using a pie chart
+
+subset_col_UCHP_AMGs <-  subset(annotated_UCHP_col_AMGs, log2FoldChange > 0)
+
+subset_col_UCHP_AMGs_split <- strsplit(subset_col_UCHP_AMGs$AMG, split = "++", fixed = TRUE)
+
+
+subset_col_UCHP_AMGs_split_df <- data_frame(v1= rep(subset_col_UCHP_AMGs$ContigName, sapply(subset_col_UCHP_AMGs_split, length)), v2= unlist(subset_col_UCHP_AMGs_split))
+
+subset_col_UCHP_AMGs_split_df
+
+table_AMGs_UCHP_AMGs_col <- table(subset_col_UCHP_AMGs_split_df$v2) 
+df_AMG_freq_UCHP_col <- as.data.frame(table_AMGs_UCHP_AMGs_col)
+
+colnames(df_AMG_freq_UCHP_col)[1] <- "AMG"
+
+df_AMG_freq_UCHP_col
+
+write.csv(df_AMG_freq_UCHP_col, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/colonization/AMGs/num_upregulated_AMGs_UCHP_col.csv" )
+
+pie_AMGs_UCHP_col <- ggplot(df_AMG_freq_UCHP_col, aes(x="", y=Freq, fill=AMG))+
+geom_bar(width = 1, stat = "identity", color= "white") + 
+coord_polar("y", start=0) +
+theme_void() 
+pie_AMGs_UCHP_col
+
+
+```
+
+
+```{r}
+#volcano plot - UC vs. PBS control comparison
+EV_col_UCNP <- EnhancedVolcano(resultsUCNP, lab=NA , x = 'log2FoldChange',
+    y = 'pvalue', pCutoff = 0.001, pointSize = 2)
+
+EV_col_UCNP
+
+
+ggsave("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/manuscript_data/deseq/data/mouse_only/dss/testEV.tiff", width = 15, height = 20, units = "cm")
+
+
+```
+
+```{r}
+#volcano plot - HP vs. PBS control comparison
+
+EV_col_HPNP <- EnhancedVolcano(resultsHPNP, lab=NA , x = 'log2FoldChange',
+    y = 'pvalue', pCutoff = 0.001, pointSize = 2)
+
+EV_col_HPNP
+
+```
+
+
+```{r}
+#volcano plot - UC vs. HP  comparison
+
+EV_col_UCHP <- EnhancedVolcano(resultsUCHP, lab=NA , x = 'log2FoldChange',
+    y = 'pvalue', pCutoff = 0.001, pointSize = 2)
+
+EV_col_UCHP
+
+```
+
+
