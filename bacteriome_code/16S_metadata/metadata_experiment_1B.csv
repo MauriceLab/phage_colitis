@@ -1,0 +1,190 @@
+﻿sampleid,Cage,Date ,Period ,Treatment ,Experiment ,Sampling Date
+1-1_02_27,1-1-expt2,7,Colonization ,No phage ,two,1
+1-2_02_27,1-2-expt2,7,Colonization ,No phage ,two,1
+1-3_02_27,1-3-expt2,7,Colonization ,No phage ,two,1
+2-1_02_27,2-1-expt2,7,Colonization ,Healthy phage ,two,1
+2-2_02_27,2-2-expt2,7,Colonization ,Healthy phage ,two,1
+2-3_02_27,2-3-expt2,7,Colonization ,Healthy phage ,two,1
+3-1_02_27,3-1-expt2,7,Colonization ,UC phage ,two,1
+3-2_02_27,3-2-expt2,7,Colonization ,UC phage ,two,1
+3-3_02_27,3-3-expt2,7,Colonization ,UC phage ,two,1
+1-1_03_06,1-1-expt2,14,Colonization ,No phage ,two,2
+1-2_03_06,1-2-expt2,14,Colonization ,No phage ,two,2
+1-3_03_06,1-3-expt2,14,Colonization ,No phage ,two,2
+2-1_03_06,2-1-expt2,14,Colonization ,Healthy phage ,two,2
+2-2_03_06,2-2-expt2,14,Colonization ,Healthy phage ,two,2
+2-3_03_06,2-3-expt2,14,Colonization ,Healthy phage ,two,2
+3-1_03_06,3-1-expt2,14,Colonization ,UC phage ,two,2
+3-2_03_06,3-2-expt2,14,Colonization ,UC phage ,two,2
+3-3_03_06,3-3-expt2,14,Colonization ,UC phage ,two,2
+1-1_03_12,1-1-expt2,20,Colonization ,No phage ,two,3
+1-2_03_12,1-2-expt2,20,Colonization ,No phage ,two,3
+1-3_03_12,1-3-expt2,20,Colonization ,No phage ,two,3
+2-1_03_12,2-1-expt2,20,Colonization ,Healthy phage ,two,3
+2-2_03_12,2-2-expt2,20,Colonization ,Healthy phage ,two,3
+2-3_03_12,2-3-expt2,20,Colonization ,Healthy phage ,two,3
+3-1_03_12,3-1-expt2,20,Colonization ,UC phage ,two,3
+3-2_03_12,3-2-expt2,20,Colonization ,UC phage ,two,3
+3-3_03_12,3-3-expt2,20,Colonization ,UC phage ,two,3
+1-1_03_13,1-1-expt2,21,gavage,No phage ,two,4
+1-2_03_13,1-2-expt2,21,gavage,No phage ,two,4
+1-3_03_13,1-3-expt2,21,gavage,No phage ,two,4
+2-1_03_13,2-1-expt2,21,gavage,Healthy phage ,two,4
+2-2_03_13,2-2-expt2,21,gavage,Healthy phage ,two,4
+2-3_03_13,2-3-expt2,21,gavage,Healthy phage ,two,4
+3-1_03_13,3-1-expt2,21,gavage,UC phage ,two,4
+3-2_03_13,3-2-expt2,21,gavage,UC phage ,two,4
+3-3_03_13,3-3-expt2,21,gavage,UC phage ,two,4
+1-1_03_15,1-1-expt2,23,gavage,No phage ,two,5
+1-2_03_15,1-2-expt2,23,gavage,No phage ,two,5
+1-3_03_15,1-3-expt2,23,gavage,No phage ,two,5
+2-1_03_15,2-1-expt2,23,gavage,Healthy phage ,two,5
+2-2_03_15,2-2-expt2,23,gavage,Healthy phage ,two,5
+2-3_03_15,2-3-expt2,23,gavage,Healthy phage ,two,5
+3-1_03_15,3-1-expt2,23,gavage,UC phage ,two,5
+3-2_03_15,3-2-expt2,23,gavage,UC phage ,two,5
+3-3_03_15,3-3-expt2,23,gavage,UC phage ,two,5
+1-1_03_19,1-1-expt2,27,gavage,No phage ,two,6
+1-2_03_19,1-2-expt2,27,gavage,No phage ,two,6
+1-3_03_19,1-3-expt2,27,gavage,No phage ,two,6
+2-1_03_19,2-1-expt2,27,gavage,Healthy phage ,two,6
+2-2_03_19,2-2-expt2,27,gavage,Healthy phage ,two,6
+2-3_03_19,2-3-expt2,27,gavage,Healthy phage ,two,6
+3-1_03_19,3-1-expt2,27,gavage,UC phage ,two,6
+3-2_03_19,3-2-expt2,27,gavage,UC phage ,two,6
+3-3_03_19,3-3-expt2,27,gavage,UC phage ,two,6
+1-1_03_21,1-1-expt2,29,gavage,No phage ,two,7
+1-2_03_21,1-2-expt2,29,gavage,No phage ,two,7
+1-3_03_21,1-3-expt2,29,gavage,No phage ,two,7
+2-1_03_21,2-1-expt2,29,gavage,Healthy phage ,two,7
+2-2_03_21,2-2-expt2,29,gavage,Healthy phage ,two,7
+2-3_03_21,2-3-expt2,29,gavage,Healthy phage ,two,7
+3-1_03_21,3-1-expt2,29,gavage,UC phage ,two,7
+3-2_03_21,3-2-expt2,29,gavage,UC phage ,two,7
+3-3_03_21,3-3-expt2,29,gavage,UC phage ,two,7
+1-1_03_25,1-1-expt2,33,DSS+washout,No phage ,two,8
+1-2_03_25,1-2-expt2,33,DSS+washout,No phage ,two,8
+1-3_03_25,1-3-expt2,33,DSS+washout,No phage ,two,8
+2-1_03_25,2-1-expt2,33,DSS+washout,Healthy phage ,two,8
+2-2_03_25,2-2-expt2,33,DSS+washout,Healthy phage ,two,8
+2-3_03_25,2-3-expt2,33,DSS+washout,Healthy phage ,two,8
+3-1_03_25,3-1-expt2,33,DSS+washout,UC phage ,two,8
+3-2_03_25,3-2-expt2,33,DSS+washout,UC phage ,two,8
+3-3_03_25,3-3-expt2,33,DSS+washout,UC phage ,two,8
+1-1_03_27,1-1-expt2,35,DSS+washout,No phage ,two,9
+1-2_03_27,1-2-expt2,35,DSS+washout,No phage ,two,9
+1-3_03_27,1-3-expt2,35,DSS+washout,No phage ,two,9
+2-1_03_27,2-1-expt2,35,DSS+washout,Healthy phage ,two,9
+2-2_03_27,2-2-expt2,35,DSS+washout,Healthy phage ,two,9
+2-3_03_27,2-3-expt2,35,DSS+washout,Healthy phage ,two,9
+3-1_03_27,3-1-expt2,35,DSS+washout,UC phage ,two,9
+3-2_03_27,3-2-expt2,35,DSS+washout,UC phage ,two,9
+3-3_03_27,3-3-expt2,35,DSS+washout,UC phage ,two,9
+1-1_03_29,1-1-expt2,37,DSS+washout,No phage ,two,10
+1-2_03_29,1-2-expt2,37,DSS+washout,No phage ,two,10
+1-3_03_29,1-3-expt2,37,DSS+washout,No phage ,two,10
+2-1_03_29,2-1-expt2,37,DSS+washout,Healthy phage ,two,10
+2-2_03_29,2-2-expt2,37,DSS+washout,Healthy phage ,two,10
+2-3_03_29,2-3-expt2,37,DSS+washout,Healthy phage ,two,10
+3-1_03_29,3-1-expt2,37,DSS+washout,UC phage ,two,10
+3-2_03_29,3-2-expt2,37,DSS+washout,UC phage ,two,10
+3-3_03_29,3-3-expt2,37,DSS+washout,UC phage ,two,10
+1-1_03_31,1-1-expt2,39,DSS+washout,No phage ,two,11
+1-2_03_31,1-2-expt2,39,DSS+washout,No phage ,two,11
+1-3_03_31,1-3-expt2,39,DSS+washout,No phage ,two,11
+2-1_03_31,2-1-expt2,39,DSS+washout,Healthy phage ,two,11
+2-2_03_31,2-2-expt2,39,DSS+washout,Healthy phage ,two,11
+2-3_03_31,2-3-expt2,39,DSS+washout,Healthy phage ,two,11
+3-1_03_31,3-1-expt2,39,DSS+washout,UC phage ,two,11
+3-2_03_31,3-2-expt2,39,DSS+washout,UC phage ,two,11
+3-3_03_31,3-3-expt2,39,DSS+washout,UC phage ,two,11
+1-1_10_03,1-1expt1,7,Colonization ,No phage ,one,1
+1-2_10_03,1-2expt1,7,Colonization ,No phage ,one,1
+1-3_10_03,1-3expt1,7,Colonization ,No phage ,one,1
+2-1_10_03,2-1expt1,7,Colonization ,Healthy phage ,one,1
+2-2_10_03,2-2expt1,7,Colonization ,Healthy phage ,one,1
+2-3_10_03,2-3expt1,7,Colonization ,Healthy phage ,one,1
+3-1_10_03,3-1expt1,7,Colonization ,UC phage ,one,1
+3-2_10_03,3-2expt1,7,Colonization ,UC phage ,one,1
+3-3_10_03,3-3expt1,7,Colonization ,UC phage ,one,1
+1-1_10_10,1-1expt1,14,Colonization ,No phage ,one,2
+1-2_10_10,1-2expt1,14,Colonization ,No phage ,one,2
+1-3_10_10,1-3expt1,14,Colonization ,No phage ,one,2
+2-1_10_10,2-1expt1,14,Colonization ,Healthy phage ,one,2
+2-2_10_10,2-2expt1,14,Colonization ,Healthy phage ,one,2
+2-3_10_10,2-3expt1,14,Colonization ,Healthy phage ,one,2
+3-1_10_10,3-1expt1,14,Colonization ,UC phage ,one,2
+3-2_10_10,3-2expt1,14,Colonization ,UC phage ,one,2
+3-3_10_10,3-3expt1,14,Colonization ,UC phage ,one,2
+1-1_10_17,1-1expt1,21,Colonization ,No phage ,one,3
+1-2_10_17,1-2expt1,21,Colonization ,No phage ,one,3
+1-3_10_17,1-3expt1,21,Colonization ,No phage ,one,3
+2-1_10_17,2-1expt1,21,Colonization ,Healthy phage ,one,3
+2-2_10_17,2-2expt1,21,Colonization ,Healthy phage ,one,3
+2-3_10_17,2-3expt1,21,Colonization ,Healthy phage ,one,3
+3-1_10_17,3-1expt1,21,Colonization ,UC phage ,one,3
+3-2_10_17,3-2expt1,21,Colonization ,UC phage ,one,3
+3-3_10_17,3-3expt1,21,Colonization ,UC phage ,one,3
+1-1_10_18,1-1expt1,22,gavage,No phage ,one,4
+1-2_10_18,1-2expt1,22,gavage,No phage ,one,4
+1-3_10_18,1-3expt1,22,gavage,No phage ,one,4
+2-1_10_18,2-1expt1,22,gavage,Healthy phage ,one,4
+2-2_10_18,2-2expt1,22,gavage,Healthy phage ,one,4
+2-3_10_18,2-3expt1,22,gavage,Healthy phage ,one,4
+3-1_10_18,3-1expt1,22,gavage,UC phage ,one,4
+3-2_10_18,3-2expt1,22,gavage,UC phage ,one,4
+3-3_10_18,3-3expt1,22,gavage,UC phage ,one,4
+1-1_10_22,1-1expt1,26,gavage,No phage ,one,5
+1-2_10_22,1-2expt1,26,gavage,No phage ,one,5
+1-3_10_22,1-3expt1,26,gavage,No phage ,one,5
+2-1_10_22,2-1expt1,26,gavage,Healthy phage ,one,5
+2-2_10_22,2-2expt1,26,gavage,Healthy phage ,one,5
+2-3_10_22,2-3expt1,26,gavage,Healthy phage ,one,5
+3-1_10_22,3-1expt1,26,gavage,UC phage ,one,5
+3-2_10_22,3-2expt1,26,gavage,UC phage ,one,5
+3-3_10_22,3-3expt1,26,gavage,UC phage ,one,5
+1-1_10_25,1-1expt1,29,gavage,No phage ,one,6
+1-2_10_25,1-2expt1,29,gavage,No phage ,one,6
+1-3_10_25,1-3expt1,29,gavage,No phage ,one,6
+2-1_10_25,2-1expt1,29,gavage,Healthy phage ,one,6
+2-2_10_25,2-2expt1,29,gavage,Healthy phage ,one,6
+2-3_10_25,2-3expt1,29,gavage,Healthy phage ,one,6
+3-1_10_25,3-1expt1,29,gavage,UC phage ,one,6
+3-2_10_25,3-2expt1,29,gavage,UC phage ,one,6
+3-3_10_25,3-3expt1,29,gavage,UC phage ,one,6
+1-1_10_29,1-1expt1,33,DSS+washout,No phage ,one,8
+1-2_10_29,1-2expt1,33,DSS+washout,No phage ,one,8
+1-3_10_29,1-3expt1,33,DSS+washout,No phage ,one,8
+2-1_10_29,2-1expt1,33,DSS+washout,Healthy phage ,one,8
+2-2_10_29,2-2expt1,33,DSS+washout,Healthy phage ,one,8
+2-3_10_29,2-3expt1,33,DSS+washout,Healthy phage ,one,8
+3-1_10_29,3-1expt1,33,DSS+washout,UC phage ,one,8
+3-2_10_29,3-2expt1,33,DSS+washout,UC phage ,one,8
+3-3_10_29,3-3expt1,33,DSS+washout,UC phage ,one,8
+1-1_10_31,1-1expt1,35,DSS+washout,No phage ,one,9
+1-2_10_31,1-2expt1,35,DSS+washout,No phage ,one,9
+1-3_10_31,1-3expt1,35,DSS+washout,No phage ,one,9
+2-1_10_31,2-1expt1,35,DSS+washout,Healthy phage ,one,9
+2-2_10_31,2-2expt1,35,DSS+washout,Healthy phage ,one,9
+2-3_10_31,2-3expt1,35,DSS+washout,Healthy phage ,one,9
+3-1_10_31,3-1expt1,35,DSS+washout,UC phage ,one,9
+3-2_10_31,3-2expt1,35,DSS+washout,UC phage ,one,9
+3-3_10_31,3-3expt1,35,DSS+washout,UC phage ,one,9
+1-1_11_02,1-1expt1,37,DSS+washout,No phage ,one,10
+1-2_11_02,1-2expt1,37,DSS+washout,No phage ,one,10
+1-3_11_02,1-3expt1,37,DSS+washout,No phage ,one,10
+2-1_11_02,2-1expt1,37,DSS+washout,Healthy phage ,one,10
+2-2_11_02,2-2expt1,37,DSS+washout,Healthy phage ,one,10
+2-3_11_02,2-3expt1,37,DSS+washout,Healthy phage ,one,10
+3-1_11_02,3-1expt1,37,DSS+washout,UC phage ,one,10
+3-2_11_02,3-2expt1,37,DSS+washout,UC phage ,one,10
+3-3_11_02,3-3expt1,37,DSS+washout,UC phage ,one,10
+1-1_11_04,1-1expt1,39,DSS+washout,No phage ,one,11
+1-2_11_04,1-2expt1,39,DSS+washout,No phage ,one,11
+1-3_11_04,1-3expt1,39,DSS+washout,No phage ,one,11
+2-1_11_04,2-1expt1,39,DSS+washout,Healthy phage ,one,11
+2-2_11_04,2-2expt1,39,DSS+washout,Healthy phage ,one,11
+2-3_11_04,2-3expt1,39,DSS+washout,Healthy phage ,one,11
+3-1_11_04,3-1expt1,39,DSS+washout,UC phage ,one,11
+3-2_11_04,3-2expt1,39,DSS+washout,UC phage ,one,11
+3-3_11_04,3-3expt1,39,DSS+washout,UC phage ,one,11
