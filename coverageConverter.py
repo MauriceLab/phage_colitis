@@ -72,7 +72,7 @@ for contig in contigs:
     processedContigsOnDate = processedContigs.get(contig.date, {})
 
     #Make contigs which don't exist "Unassigned"
-    metadataObject = metadataDict.get(contig.name, ["Unassigned","Unassigned","Unassigned","Unassigned","Unassigned"])
+    metadataObject = metadataDict.get(contig.name, ["Unassigned","Unassigned","Unassigned","Unassigned","Unassigned","Unassigned"])
 
     #Make Caudovirales(Unassigned) into Caudovirales(Caudovirales); easier to process visually in R
     if metadataObject[0] == "Caudovirales" and metadataObject[1] == "Unassigned":
