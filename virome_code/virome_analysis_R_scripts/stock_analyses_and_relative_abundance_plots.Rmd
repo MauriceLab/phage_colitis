@@ -1,0 +1,1697 @@
+---
+title: "parsing_coverage_converter"
+author: "Anshul Sinha"
+date: "1/11/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(dplyr)
+library(tidyverse)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library("RColorBrewer")
+library("VennDiagram")
+library("ggplot2")
+library("extrafont")
+ library(data.table)
+
+
+
+```
+
+```{r}
+font_import()
+
+```
+
+
+```{r}
+#parsing the coverage-converter to incorporate appropriate sample-specific metadata
+
+sample_df <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/coverage_converter/0.7/merged-geneious_output_0.7.csv")
+
+
+
+#adding new column "treatment" based on VLP treatment 
+
+
+sample_df <- sample_df %>% 
+    mutate(Treatment = case_when(Sample == 'IDT_i5_10' ~ 'UCP_stock', Sample == 'IDT_i5_146' ~ 'UCP_stock', Sample == 'IDT_i5_158' ~ 'UCP_stock', Sample == 'IDT_i5_170' ~ 'UCP_stock', Sample == 'IDT_i5_57' ~ 'UCP_stock', Sample == 'IDT_i5_21' ~ 'HP_stock', Sample == 'IDT_i5_45' ~ 'HP_stock', Sample == 'IDT_i5_69' ~ 'HP_stock', Sample == 'IDT_i5_93' ~ 'HP_stock', Sample == 'IDT_i5_45' ~ 'HP_stock', str_sub(Sample, 1, 1) == 3 ~ 'UCP', str_sub(Sample, 1, 1) == 2 ~ 'HP', str_sub(Sample, 1, 1) == 1 ~ 'PBS', TRUE ~ 'NA'))
+           
+
+          
+#adding new column "date" based on date
+
+#first creating a function to take n characters from the end 
+
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+#taking the last two characters fromt he sample collection and changing to the number of days from experiment start
+#note that some of the stocks end with those 2 characters, first, create a character to label whether a sample comes from a stock
+
+sample_df <- sample_df %>%
+    mutate(Stock = case_when(substr(Sample, 1, 3) == 'IDT' ~ 'stock', TRUE ~ 'no'))
+
+
+sample_df <- sample_df %>% 
+    mutate(Date = case_when(substrRight(Sample, 2) == '03' ~ '7', substrRight(Sample, 2) == '10' ~ '14', substrRight(Sample, 2) == '17' ~ '21',substrRight(Sample, 2) == '18' ~ '22', substrRight(Sample, 2) == '22' ~ '26', substrRight(Sample, 2) == '25' ~ '29', substrRight(Sample, 2) == '02' ~ '37', substrRight(Sample, 2) == '04' ~ '39', Stock == 'yes' ~ 'NA', TRUE ~ 'NA'))
+
+
+#now add 'Periods' based on these dates 
+
+sample_df <- sample_df %>%
+    mutate(Period = case_when(Date == '7'~ 'Colonization', Date == '14' ~ 'Colonization', Date == '21'~ 'Colonization', Date == '22'~ 'Gavage', Date == '26'~ 'Gavage', Date == '29'~ 'Gavage', Date == '37'~ 'DSS+washout', Date == '39'~ 'DSS+washout', TRUE ~ 'NA'))
+
+
+#now add 'pre/post DSS' based on these dates 
+sample_df <- sample_df %>%
+    mutate(DSS = case_when(Date == '7'~ 'Pre-DSS', Date == '14' ~ 'Pre-DSS', Date == '21'~ 'Pre-DSS', Date == '22'~ 'Pre-DSS', Date == '26'~ 'Pre-DSS', Date == '29'~ 'Pre-DSS', Date == '37'~ 'Post-DSS', Date == '39'~ 'Post-DSS', TRUE ~ 'NA'))
+
+
+#now add cage info 
+
+sample_df <- sample_df %>% 
+    mutate(Cage = case_when(substr(Sample, 1, 3) == '1-1' ~ 'cage1-1', substr(Sample, 1, 3) == '1-2' ~ 'cage1-2',substr(Sample, 1, 3) == '1-3' ~ 'cage1-3',substr(Sample, 1, 3) == '2-1' ~ 'cage2-1', substr(Sample, 1, 3) == '2-2' ~ 'cage2-2', substr(Sample, 1, 3) == '2-3' ~ 'cage2-3', substr(Sample, 1, 3) == '3-1' ~ 'cage3-1', substr(Sample, 1, 3) == '3-2' ~ 'cage3-2',  substr(Sample, 1, 3) == '3-3' ~ 'cage3-3', TRUE ~ 'NA'))
+
+
+sample_df
+write_csv(sample_df, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/sample_df.csv')
+
+```
+
+```{r}
+
+#subsetting for stock samples and also making sure that the Treatments have a value - IDT_22 - not included in analyses has NA values
+stock_df <- subset(sample_df, Stock == 'stock')
+stock_df <- subset(stock_df, Treatment != 'NA')  
+
+
+mice_df <- subset(sample_df, Stock == 'no')
+
+mice_df_col <- subset(sample_df, Period == 'Colonization')
+mice_df_col <- subset(mice_df_col, Treatment != 'UCP_stock')
+
+mice_df_col_17 <- subset(mice_df_col, Date == '21')
+
+
+
+mice_df_gav <- subset(sample_df, Period == 'Gavage')
+mice_df_gav <- subset(mice_df_gav,  Treatment != 'NA')
+
+
+mice_df_dss <- subset(sample_df, Period == 'DSS+washout')
+
+
+
+stock_df_no_microviridae <- subset(stock_df, Family != 'Microviridae')  
+
+stock_df
+#VERIFYING THE NUMBER OF SAMPLES IN EACH TREATMENT GROUP 
+
+#PBS mice
+PBS_mice_df  <- subset(sample_df, Treatment == 'PBS')
+length(unique(PBS_mice_df$Sample))
+
+#HP mice 
+
+HP_mice_df  <- subset(sample_df, Treatment == 'HP')
+length(unique(HP_mice_df$Sample))
+
+
+#UCP mice 
+
+UCP_mice_df  <- subset(sample_df, Treatment == 'UCP')
+length(unique(UCP_mice_df$Sample))
+
+
+
+
+#HP stock 
+HP_stock_df <- subset(stock_df, Treatment == 'HP_stock')
+length(unique(HP_stock_df$Sample))
+
+
+#UCP stock 
+
+UCP_stock_df <- subset(stock_df, Treatment == 'UCP_stock')
+length(unique(UCP_stock_df$Sample))
+
+
+#UCP mice + UC stock 
+
+
+UCP_stock_mice_df <- rbind(UCP_stock_df, UCP_mice_df)
+UCP_stock_mice_df
+
+
+HP_stock_mice_df <- rbind(HP_stock_df, HP_mice_df)
+HP_stock_mice_df
+#subset by cage 
+
+cage11_df <- subset(sample_df, Cage == 'cage1-1')
+cage12_df <- subset(sample_df, Cage == 'cage1-2')
+cage13_df <- subset(sample_df, Cage == 'cage1-3')
+
+
+cage21_df<- subset(sample_df, Cage == 'cage2-1')
+cage22_df <- subset(sample_df, Cage == 'cage2-2')
+cage23_df <- subset(sample_df, Cage == 'cage2-3')
+
+
+cage31_df <- subset(sample_df, Cage == 'cage3-1')
+cage32_df <- subset(sample_df, Cage == 'cage3-2')
+cage33_df <- subset(sample_df, Cage == 'cage3-3')
+
+
+sample_31_25_df <- subset(sample_df, Sample == '3-1_10_25')
+
+
+
+
+```
+```{r}
+UCP_stock_mice_df <-  write_csv(UCP_stock_mice_df, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/diversity/ucp_mice_stocks_df.csv")
+
+HP_stock_mice_df <-  write_csv(HP_stock_mice_df, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/diversity/hp_mice_stocks_df.csv")
+
+
+
+
+
+```
+
+```{r}
+
+
+
+#getting stock df - UCP 
+
+UCP_stock_df <- subset(stock_df, Treatment == 'UCP_stock')
+UCP_stock_df
+
+#getting stock df - HP 
+
+
+write_csv(UCP_stock_df, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/UCPstock.csv")
+HP_stock_df <- subset(stock_df, Treatment == 'HP_stock')
+
+HP_stock_df
+```
+
+```{r}
+
+#getting number of unique UC stock scaffolds - 1261 
+
+length(unique(UCP_stock_df$ContigName))
+
+#getting number of unique HP stock scaffolds -718
+
+length(unique(HP_stock_df$ContigName))
+
+#getting a df that shows unique scaffolds and their metadata 
+
+
+ unique_UCP_stocks <- UCP_stock_df[!duplicated(UCP_stock_df$ContigName),]
+ unique_HP_stocks <- HP_stock_df[!duplicated(HP_stock_df$ContigName),]
+
+ 
+ unique_HP_stocks
+ unique_UCP_stocks
+ 
+ 
+ 
+ 
+# number of shared scaffolds 
+ 
+ 
+  length(intersect(unique_UCP_stocks$ContigName, unique_HP_stocks$ContigName))
+ 
+ #number of lysogenic scaffolds - UCP
+ 
+ table(unique_UCP_stocks$LifeCycle)
+ 
+ #number of lysogenic scaffolds - HP
+ 
+ table(unique_HP_stocks$LifeCycle)
+ 
+ 
+ #reviewer comment: how many of the Bacteroides-infecting VLP scaffolds in the UCP stock are Microviridae 
+ 
+ unique_UCP_stocks_bacteroides <- subset(unique_UCP_stocks, CRISPRMatch == 'Bacteroides')
+
+ unique_UCP_stocks_bacteroides
+ 
+ 
+ table(unique_UCP_stocks_bacteroides$Order)
+ 
+
+```
+
+```{r}
+
+
+#filtering for just microviridae contigs in the UC stock 
+unique_UCP_stocks_microviridae <- subset(unique_UCP_stocks, Family == 'Microviridae')
+unique_UCP_stocks_microviridae
+
+table(unique_UCP_stocks_microviridae$LifeCycle)
+
+
+unique_HP_stocks_microviridae <- subset(unique_HP_stocks, Family == 'Microviridae')
+unique_HP_stocks_microviridae
+
+table(unique_HP_stocks_microviridae$LifeCycle)
+
+```
+
+```{r}
+#number of VCs UCP  - need to convert anything that says 'outlier, singleton, or overlap, to its contig name' 
+  UC_stock_vcs <- UCP_stock_df
+ 
+ 
+setDT(UC_stock_vcs)           ## converts to data.table by reference, no need for `<-`
+
+#converting anything with those values to be named with its contig name 
+
+UC_stock_vcs[ ViralCluster == "Outlier", ViralCluster := ContigName ]
+UC_stock_vcs[ ViralCluster == "Overlap", ViralCluster := ContigName ]
+UC_stock_vcs[ ViralCluster == "Singleton", ViralCluster := ContigName ]
+
+UC_stock_vcs
+
+#removing duplicate VC values and contig names 
+unique_UCP_stocks_vcs <- UC_stock_vcs[!duplicated(UC_stock_vcs$ViralCluster),]
+
+#941 unique VCs
+length(unique_UCP_stocks_vcs$ViralCluster)
+
+
+```
+```{r}
+#For Supplementary Table S1: display unique scaffolds for the UCP and HP stocks 
+
+ unique_HP_stocks 
+ unique_UCP_stocks
+ unique_stocks <- rbind(unique_HP_stocks, unique_UCP_stocks)
+ 
+ #drop 'Sample' Column 
+ 
+ unique_stocks_df <- within(unique_stocks, rm(Sample))
+ unique_stocks_df
+ 
+ write.csv(unique_stocks_df, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/unique_stocks_df.csv")
+```
+
+
+
+
+
+```{r}
+#number of VCs UCP  - need to convert anything that says 'outlier, singleton, or overlap, to its contig name' 
+  HP_stock_vcs <- HP_stock_df
+ 
+ 
+setDT(HP_stock_vcs)           ## converts to data.table by reference, no need for `<-`
+
+#converting anything with those values to be named with its contig name 
+
+HP_stock_vcs[ ViralCluster == "Outlier", ViralCluster := ContigName ]
+HP_stock_vcs[ ViralCluster == "Overlap", ViralCluster := ContigName ]
+HP_stock_vcs[ ViralCluster == "Singleton", ViralCluster := ContigName ]
+
+HP_stock_vcs
+
+#removing duplicate VC values and contig names 
+unique_HP_stocks_vcs <- HP_stock_vcs[!duplicated(HP_stock_vcs$ViralCluster),]
+unique_HP_stocks_vcs
+# unique VCs
+length(unique_HP_stocks_vcs$ViralCluster)
+
+
+```
+
+```{r}
+
+
+length(intersect(unique_UCP_stocks_vcs$ViralCluster, unique_HP_stocks_vcs$ViralCluster))
+
+#86 shared VCs 
+
+```
+
+
+
+```{r}
+
+#venn diagram - scaffold level 
+grid.newpage()
+
+myCol <- c("#A7C7E7", "#E66360")
+#Making venn diagram
+#Shared Scaffolds Between Stocks
+#718 healthy scaffolds total 
+#1261 UC scaffolds total 
+#37 shared scaffolds total 
+
+venn_test <- draw.pairwise.venn(718, 1261, 45, category = c("Healthy VLP Scaffolds", "UC VLP Scaffolds"), lty = rep("blank", 2), fill = myCol, alpha = rep(0.5, 2), cat.pos = c(180, 
+    180), cat.dist = rep(0.025, 1), rotation.degree = 180, ext.length = 1, scaled = TRUE, cex = 1.6, cat.cex = 0, ext.dist = -0.1, ext.text = FALSE, fontfamily = 'Arial')
+
+```
+```{r}
+#venn diagram - VC level 
+grid.newpage()
+
+myCol <- c("#A7C7E7", "#E66360")
+#Making venn diagram
+#Shared Scaffolds Between Stocks
+#718 healthy scaffolds total 
+#1261 UC scaffolds total 
+#37 shared scaffolds total 
+
+venn_test <- draw.pairwise.venn(523, 974, 86, category = c("Healthy VLP Scaffolds", "UC VLP Scaffolds"), lty = rep("blank", 2), fill = myCol, alpha = rep(0.5, 2), cat.pos = c(180, 
+    180), cat.dist = rep(0.025, 1), rotation.degree = 180, ext.length = 1, scaled = TRUE, cex = 1.6, cat.cex = 0, ext.dist = -0.1, ext.text = FALSE, fontfamily = 'Arial')
+```
+ 
+ 
+
+
+```{r}
+#number of scaffolds transferred to UCP 
+
+
+UCP_mice_df  <- subset(sample_df, Treatment == 'UCP')
+#now subset 
+
+
+
+UCP_mice_df_post_gav <- subset(UCP_mice_df, Period == "Gavage" | Period =="DSS+washout")
+
+
+UCP_mice_df_col <- subset(UCP_mice_df, Period == "Colonization")
+
+#now generate unique contigs df from those 
+
+
+#for all scaffolds 
+unique_UC__mice <- UCP_mice_df[!duplicated(UCP_mice_df$ContigName),]
+
+unique_UC__mice
+
+#for subset of post_VLP gavage
+
+ unique_UC_post_VLP_gav <- UCP_mice_df_post_gav[!duplicated(UCP_mice_df_post_gav$ContigName),]
+ unique_UC_post_VLP_gav
+ 
+#for subset in colonization period 
+
+ 
+unique_UCP_mice_df_col <-  UCP_mice_df_col[!duplicated(UCP_mice_df_col$ContigName),]
+ unique_UCP_mice_df_col
+ 
+ 
+ 
+ #this will give us the number of scaffolds in post-VLP gavage but not colonization 
+ length(setdiff(unique_UC_post_VLP_gav$ContigName, unique_UCP_mice_df_col$ContigName))
+ 
+  
+ 
+ 
+ 
+  #get df of unique scaffolds found post-VLP-gavage but not in colonization 
+post_g_UCP_no_col <-  as.data.frame((setdiff(unique_UC_post_VLP_gav$ContigName, unique_UCP_mice_df_col$ContigName)))
+
+colnames(post_g_UCP_no_col) <- "ContigName"
+ post_g_UCP_no_col
+ 
+ 
+#how many of these are found in the UC stock (in general)
+  length(intersect(unique_UC__mice$ContigName,unique_UCP_stocks$ContigName))
+  
+
+#how many of these are found in the UC stock (only looking at post_gavage)
+
+ length(intersect(unique_UC_post_VLP_gav$ContigName, unique_UCP_stocks$ContigName))
+ 
+#how many of these are found in the UC stock (only looking at unique post_gavage scaffolds)
+
+ length(intersect(post_g_UCP_no_col$ContigName, unique_UCP_stocks$ContigName))
+ 
+ 
+ scaf_unique_UCP_stock_mice <- intersect(post_g_UCP_no_col$ContigName, unique_UCP_stocks$ContigName)
+
+ write.csv(scaf_unique_UCP_stock_mice, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/unique_scaf_post_gav_stock_UCP.csv")
+ 
+ 
+ 
+ 
+ #now associate with metadata 
+
+ #reading in the contig metadata, so I can associate it with the deseq2 results 
+scaffold_metadata <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/metadata/0.7_cutoff/metadata.csv")
+
+scaf_unique_UCP_stock_mice <- as.data.frame(scaf_unique_UCP_stock_mice)
+
+colnames(scaf_unique_UCP_stock_mice) <- "ContigName"
+
+scaf_unique_UCP_stock_mice
+scaf_unique_UCP_stock_mice_meta <- left_join(scaf_unique_UCP_stock_mice, scaffold_metadata, by=c("ContigName"="ContigName"))
+scaf_unique_UCP_stock_mice_meta
+
+ write.csv(scaf_unique_UCP_stock_mice_meta, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/unique_scaf_post_gav_stock_UCP_meta.csv")
+ 
+```
+
+
+
+```{r}
+#number of scaffolds transferred to HP 
+
+
+
+HP_mice_df  <- subset(sample_df, Treatment == 'HP')
+#now subset 
+
+
+
+#verify number of samples 
+
+length(unique(HP_mice_df$Sample))
+
+HP_mice_df_post_gav <- subset(HP_mice_df, Period == "Gavage" | Period =="DSS+washout")
+
+
+HP_mice_df_col <- subset(HP_mice_df, Period == "Colonization")
+
+#now generate unique contigs df from those 
+
+
+#for all scaffolds 
+unique_HP__mice <- HP_mice_df[!duplicated(HP_mice_df$ContigName),]
+
+unique_HP__mice
+
+#for subset of post_VLP gavage
+
+ unique_HP_post_VLP_gav <- HP_mice_df_post_gav[!duplicated(HP_mice_df_post_gav$ContigName),]
+ unique_HP_post_VLP_gav
+ 
+#for subset in colonization period 
+
+ 
+unique_HP_mice_df_col <-  HP_mice_df_col[!duplicated(HP_mice_df_col$ContigName),]
+ unique_HP_mice_df_col
+ 
+ 
+ 
+ #this will give us the number of scaffolds in post-VLP gavage but not colonization 
+ length(setdiff(unique_HP_post_VLP_gav$ContigName, unique_HP_mice_df_col$ContigName))
+ 
+  
+ 
+ 
+ 
+  #get df of unique scaffolds found post-VLP-gavage but not in colonization 
+post_g_HP_no_col <-  as.data.frame((setdiff(unique_HP_post_VLP_gav$ContigName, unique_HP_mice_df_col$ContigName)))
+
+colnames(post_g_HP_no_col) <- "ContigName"
+ post_g_HP_no_col
+ 
+ 
+#how many of these are found in the HP stock (in general)
+  length(intersect(unique_HP__mice$ContigName,unique_HP_stocks$ContigName))
+  
+
+#how many of these are found in the HP stock (only looking at post_gavage)
+
+ length(intersect(unique_HP_post_VLP_gav$ContigName, unique_HP_stocks$ContigName))
+ 
+#how many of these are found in the HP stock (only looking at unique post_gavage scaffolds)
+
+length(intersect(post_g_HP_no_col$ContigName, unique_HP_stocks$ContigName))
+
+scaf_unique_HP_stock_mice <- intersect(post_g_HP_no_col$ContigName, unique_HP_stocks$ContigName)
+
+ write.csv(scaf_unique_HP_stock_mice, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/unique_scaf_post_gav_stock_HP.csv")
+ 
+  #reading in the contig metadata, so I can associate it with the deseq2 results 
+scaffold_metadata <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/metadata/0.7_cutoff/metadata.csv")
+
+scaf_unique_HP_stock_mice <- as.data.frame(scaf_unique_HP_stock_mice)
+
+colnames(scaf_unique_HP_stock_mice) <- "ContigName"
+
+scaf_unique_HP_stock_mice
+scaf_unique_HP_stock_mice_meta <- left_join(scaf_unique_HP_stock_mice, scaffold_metadata, by=c("ContigName"="ContigName"))
+scaf_unique_HP_stock_mice_meta
+
+ write.csv(scaf_unique_HP_stock_mice_meta, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/unique_scaf_post_gav_stock_HP_meta.csv")
+ 
+ 
+```
+
+
+
+```{r}
+#UC stocks analyses 
+
+
+num_scaf_UC_stocks <- nrow(unique_UCP_stocks)
+num_scaf_UC_stocks
+
+#table(unique_UCP_stocks$CRISPRMatch)
+#table(unique_UCP_stocks$Family)
+#table(unique_UCP_stocks$LifeCycle)
+
+
+#CRISPR
+
+UC_stockstable_crispr <- table(unique_UCP_stocks$CRISPRMatch) 
+write.csv(UC_stockstable_crispr, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/UC_stocks/UC_stock_crispr_matches.csv")
+
+
+
+#Num scaffolds with CRISPR 
+
+scaf_with_crispr_UC_stocks <- filter(unique_UCP_stocks, unique_UCP_stocks$CRISPRMatch != 'unknown' )
+scaf_with_crispr_UC_stocks
+
+
+#proportion 
+nrow(scaf_with_crispr_UC_stocks)/nrow(unique_UCP_stocks)*100
+
+
+
+#life cycle 
+UC_replication_df_stocks <- table(unique_UCP_stocks$LifeCycle)
+UC_replication_df_stocks <- as.data.frame(UC_replication_df_stocks)
+UC_replication_df_stocks
+colnames(UC_replication_df_stocks)[1] <- "ReplicationCycle"
+
+pie_repl_UC_stocks <- ggplot(UC_replication_df_stocks, aes(x="", y=Freq, fill= ReplicationCycle))+
+geom_bar(width = 1, stat = "identity", color= "black") + 
+coord_polar("y", start=0) +
+geom_text(aes(x= 1.2, label = paste0(round(Freq/num_scaf_UC_stocks*100, digits = 2), "%")), position = position_stack(vjust = 0.5), size=6)  +
+scale_fill_manual(values = c("virulent" = "white", "temperate" = "#ff6961"), breaks = c("temperate"), labels= ("temperate"= "Temperate \n Scaffolds")) +
+theme_void() +
+theme(legend.title = element_blank()) +
+theme(legend.text=element_text(size=16)) + 
+theme(
+  legend.text = element_text(size = 20), legend.key.size = unit(1, "line")) +
+  theme(legend.position = "bottom")
+pie_repl_UC_stocks
+
+
+
+```
+
+
+
+
+```{r}
+
+
+num_scaf_healthy_stocks <- nrow(unique_HP_stocks)
+
+
+#CRISPR
+
+htable_crispr_stocks <- table(unique_HP_stocks$CRISPRMatch) 
+write.csv(htable_crispr_stocks, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/stocks_analyses/HP_stocks_CRISPR.csv")
+
+
+htable_crispr_stocks
+
+
+
+scaf_with_crispr_H_stocks <- filter(unique_HP_stocks, unique_HP_stocks$CRISPRMatch != 'unknown' )
+scaf_with_crispr_H_stocks
+
+
+#proportion 
+
+nrow(scaf_with_crispr_H_stocks)/nrow(unique_HP_stocks)*100
+
+
+
+#life cycle 
+table(unique_HP_stocks$LifeCycle)
+healthy_replication_df_stocks <- table(unique_HP_stocks$LifeCycle)
+healthy_replication_df_stocks <- as.data.frame(healthy_replication_df_stocks)
+colnames(healthy_replication_df_stocks)[1] <- "ReplicationCycle"
+
+pie_repl_healthy_stocks <- ggplot(healthy_replication_df_stocks, aes(x="", y=Freq, fill= ReplicationCycle))+
+geom_bar(width = 1, stat = "identity", color= "black") + 
+coord_polar("y", start=0) +
+geom_text(aes(x= 1.2, label = paste0(round(Freq/num_scaf_healthy_stocks*100, digits = 2), "%")), position = position_stack(vjust = 0.5), size=6)  +
+scale_fill_manual(values = c("virulent" = "white", "temperate" = "#78A2CC"), breaks = c("temperate"), labels= ("temperate"= "Temperate\n Scaffolds ")) +
+theme_void() +
+theme(legend.title = element_blank()) +
+theme(legend.text=element_text(size=10)) + 
+theme(
+  legend.text = element_text(size = 20), legend.key.size = unit(1, "line")) +
+  theme(legend.position = "bottom")
+pie_repl_healthy_stocks
+
+
+
+```
+```{r}
+
+
+
+#function to get top 8 and "other" df from input crispr table - for use in making pie chart 
+
+
+funct_crispr_pie <- function(crispr_table) {
+
+crispr_table_df <- as.data.frame(crispr_table)
+
+  
+ #filter out rows that contain the string 'unknown' so that we are only working with 
+crispr_table_df <- filter(crispr_table_df, Var1 != 'unknown')
+
+
+
+#now slicing the df to only the top 7
+
+
+top_crispr_table_df <- crispr_table_df  %>% 
+    arrange(desc(Freq)) %>%
+    slice(1:7) 
+
+
+
+#Splitting dataframe in two based on top 7 and "other" - top_new_data includes data_frame with top 5 
+
+uniqueval_test <- length(unique(crispr_table_df$Var1))
+
+
+
+
+#need to determine how many unique CRISPR matches are in the column to determine how many values to slice the 2nd df 
+
+bottom_new_data_df <- crispr_table_df  %>% 
+      arrange(desc(Freq)) %>%
+      slice(8:uniqueval_test) 
+
+
+#changing all remaining CRISPR match values  as 'other' 
+
+bottom_new_data_df$Var1 = "Other"
+
+#Above- each value of 'other' has its own frequency
+#Now, all the 'others'  need to be summed, using the following below
+  
+bottom_new_data_summed <- bottom_new_data_df %>% 
+       group_by(Var1) %>% 
+       summarise(Freq= sum(Freq))
+
+
+
+#now combine the dfs 
+
+combined_df_crispr <- rbind(top_crispr_table_df, bottom_new_data_summed)
+combined_df_crispr 
+
+}
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+combined_df_h_stocks_crispr <- funct_crispr_pie(htable_crispr_stocks)
+combined_df_h_stocks_crispr
+
+
+combined_df_UC_stocks_crispr <- funct_crispr_pie(UC_stockstable_crispr)
+combined_df_UC_stocks_crispr
+```
+
+
+
+```{r}
+#aggregating all dfs  so the plots have the same colours
+
+#extending colours to use 
+nb.cols <- 12
+mycolors_stocks <- colorRampPalette(brewer.pal(8, "Set3"))(nb.cols)
+
+agg_graphs_crispr <- union(combined_df_UC_stocks_crispr$Var1, combined_df_h_stocks_crispr$Var1)
+
+col_df <- mycolors_stocks
+
+names(col_df) <- agg_graphs_crispr
+
+typeof(col_df)
+col_df
+
+```
+
+
+```{r}
+
+pie_h_crispr_stocks <- ggplot(combined_df_h_stocks_crispr, aes(x="", y=Freq, fill= Var1))+
+geom_bar(width = 1, stat = "identity", color= "white") + 
+coord_polar("y", start=0) +
+scale_fill_manual(values = col_df) +
+theme_void() 
+
+pie_h_crispr_stocks
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+pie_uc_crispr_stocks <- ggplot(combined_df_UC_stocks_crispr, aes(x="", y=Freq, fill= Var1))+
+geom_bar(width = 1, stat = "identity", color= "white") + 
+coord_polar("y", start=0) +
+scale_fill_manual(values = col_df) +
+theme_void() +
+labs(fill='CRISPR-Spacer Predicted Host') +
+theme_void() +
+coord_polar(theta = "y") +
+theme_void() + 
+theme(
+  legend.title = element_text(size = 14),
+  legend.text = element_text(size = 12), legend.key.size = unit(1, "line")) +
+  theme(
+  strip.background = element_blank(),
+  strip.text.x = element_blank()
+) + 
+  guides(fill=guide_legend(ncol=2, title.position = "top")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text.align = 0)
+
+
+pie_uc_crispr_stocks
+```
+
+```{r}
+combined_df_h_stocks_crispr$id = 'Healthy Scaffolds'
+combined_df_UC_stocks_crispr$id = 'UC Scaffolds'
+df_crispr_combined_stocks = rbind(combined_df_h_stocks_crispr, combined_df_UC_stocks_crispr)
+df_crispr_combined_stocks
+
+
+
+pie_crispr_combined <- ggplot(df_crispr_combined_stocks,  aes(x=0, y=Freq, fill= Var1)) + 
+geom_bar(width = 1, stat = "identity", color= "white", position = position_fill()) + 
+scale_fill_manual(values = col_df, labels= c(expression(italic("Bacteroides")), expression(italic("Bifidobacterium")), expression(italic("Parabacteroides")), expression(italic("Clostridium")), expression(italic("Flavonifractor")), expression(italic("Faecalibacterium")), expression(italic("Alistipes")),"Other", expression(italic("Prevotella")), expression(italic("Ruminococcus")), expression(italic("Odoribacter")), expression(italic("Blautia"))))  +
+labs(fill='CRISPR-Spacer Predicted Host') +
+theme_void() +
+facet_wrap(~id) +
+coord_polar(theta = "y") +
+theme_void() + 
+theme(
+  legend.title = element_text(size = 14),
+  legend.text = element_text(size = 12), legend.key.size = unit(1, "line")) +
+  theme(
+  strip.background = element_blank(),
+  strip.text.x = element_blank()
+) + 
+  guides(fill=guide_legend(ncol=2, title.position = "top")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text.align = 0)
+pie_crispr_combined
+
+```
+
+
+
+
+
+
+
+
+```{r}
+#function to plot relative abundance of Family by Treatment 
+#takes the subsetted df of interest and groups by Treatment and Family 
+
+plot_rel_ab_fam_treat <- function(df) {
+
+ #Creating a color_map so that the labels are associated with a specific colour 
+  
+  
+color_map <- c('Unclassified Caudovirales' = '#F6B762', 'crAss-like phage' = '#CBC3E3','Circoviridae' = 'black', 'Inoviridae' = '#C7D267', 'Mimiviridae' = 'red', 'Microviridae' = '#E48883', 'Myoviridae' = '#96A8C1', 'Phycodnaviridae' = '#B8B29F', 'Podoviridae' =  '#CDD796', 'Polydnaviridae' =  'purple', 'Potyviridae' =  'green', 'Poxviridae' = '#FCCDE5', 'Retroviridae' = 'grey', 'Siphoviridae' = '#D5EFBA', 'Unassigned' = '#C4A484' )
+
+
+color_map_select <- c('Unclassified Caudovirales', 'crAss-like phage', 'Microviridae', 'Myoviridae', 'Phycodnaviridae', 'Podoviridae', 'Siphoviridae', 'Unassigned' )
+
+new_df <- df   %>% 
+       group_by(Treatment,Family) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+
+new_df
+
+#Grouping dataframe by treatment and family and summing relative abundances within each subgroup 
+
+plot <- ggplot(new_df , aes(fill= new_df$Family, y=new_df$SummedAbundance, x=new_df$Treatment)) +
+labs(x="Treatment") + labs(y="Relative abundance") + labs(fill="Family") + 
+geom_bar(position = "fill",stat ="identity")  +
+scale_fill_manual(breaks = color_map_select, values = color_map) +
+theme(axis.text.x=element_text(angle=90,hjust=1)) 
+
+plot + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=12))
+
+
+
+}
+
+
+
+```
+
+
+```{r}
+plot_rel_ab_fam_treat(stock_df)
+plot_rel_ab_fam_treat(stock_df_no_microviridae)
+df_rel_ab_fam_treat(stock_df)
+
+```
+
+
+
+
+
+
+```{r}
+#function to plot relative abundance of Family by Sample 
+#takes the subsetted df of interest and groups by Sample and Family 
+
+
+
+
+plot_rel_ab_fam_sample <- function(df) {
+  
+   #Creating a color_map so that the labels are associated with a specific colour 
+color_map <- c('Unclassified Caudovirales' = '#F6B762', 'crAss-like phage' = '#CBC3E3','Circoviridae' = 'black', 'Inoviridae' = '#C7D267', 'Mimiviridae' = 'red', 'Microviridae' = '#E48883', 'Myoviridae' = '#96A8C1', 'Phycodnaviridae' = '#B8B29F', 'Podoviridae' =  '#CDD796', 'Polydnaviridae' =  'purple', 'Potyviridae' =  'green', 'Poxviridae' = '#FCCDE5', 'Retroviridae' = 'grey', 'Siphoviridae' = '#D5EFBA', 'Unassigned' = '#C4A484' )
+
+
+color_map_select <- c('Unclassified Caudovirales', 'crAss-like phage', 'Microviridae', 'Myoviridae', 'Phycodnaviridae', 'Podoviridae', 'Siphoviridae', 'Unassigned' )
+
+
+new_df <- df   %>% 
+       group_by(Sample,Family) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+
+new_df
+
+#Grouping dataframe by treatment and family and summing relative abundances within each subgroup 
+
+plot <- ggplot(new_df , aes(fill= new_df$Family, y=new_df$SummedAbundance, x=new_df$Sample)) +
+labs(x="Treatment") + labs(y="Relative abundance") + labs(fill="Family") + 
+geom_bar(position = "fill", stat = "identity")  +
+scale_fill_manual(breaks = color_map_select, values = color_map) +
+theme(axis.text.x=element_text(angle=90,hjust=1))
+
+plot + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=3.5))
+
+
+}
+
+
+```
+
+```{r}
+plot_rel_ab_fam_sample(mice_df_col)
+plot_rel_ab_fam_sample(mice_df_gav)
+plot_rel_ab_fam_sample(mice_df_dss)
+
+
+plot_rel_ab_fam_treat(mice_df_col)
+plot_rel_ab_fam_treat(mice_df_gav)
+plot_rel_ab_fam_treat(mice_df_dss)
+
+```
+
+
+
+```{r}
+
+#same as above, but to just get the df
+
+df_rel_ab_fam_treat <- function(df) {
+
+new_df <- df   %>% 
+       group_by(Treatment,Family) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+
+new_df
+}
+```
+
+
+```{r}
+#Fold-increases in relative abundances : Myoviridae - col to HP 
+
+
+ df_col_treat <- df_rel_ab_fam_treat(mice_df_col)
+
+df_col_treat
+
+df_gav_treat <- df_rel_ab_fam_treat(mice_df_gav)
+
+df_gav_treat
+
+df_dss_treat <- df_rel_ab_fam_treat(mice_df_dss)
+
+df_dss_treat
+
+#myoviridae rel ab PBS - colonization  -7 colonization samples 
+pbs_myo_col <- 0.110407709/7*100
+pbs_myo_col
+
+#myoviridae rel ab HP - colonization  -6 colonization samples 
+hp_myo_col <- 0.141836295/6*100
+hp_myo_col
+
+#myoviridae rel ab UCP - colonization  - 8 colonization samples 
+
+ucp_myo_col <- 0.311361396/8*100
+ucp_myo_col
+
+
+
+#myoviridae rel ab PBS - Gavage  - 7 gavage samples 
+
+pbs_myo_gav <- 0.047990398/7*100
+pbs_myo_gav
+
+
+
+#myoviridae rel ab HP - Gavage  - 9 gavage samples 
+
+hp_myo_gav <- 1.530889458/9*100
+hp_myo_gav
+
+#myoviridae rel ab UCP - Gavage 9 gavage samples 
+UCP_myo_gav <-  1.331763541/9*100
+UCP_myo_gav
+
+#myoviridae fold-change in relative abundance after VLP gavage 
+
+
+fc_myo_PBS <- pbs_myo_gav/pbs_myo_col
+fc_myo_PBS
+
+fc_myo_hp <- hp_myo_gav/hp_myo_col
+fc_myo_hp 
+
+fc_myo_uc <- UCP_myo_gav/ucp_myo_col
+fc_myo_uc
+
+
+
+
+```
+
+```{r}
+
+#now looking at fold change of crAssphage post vs. pre DSS
+
+#create pre-post DF
+
+pre_DSS_df <- subset(sample_df, DSS == 'Pre-DSS')
+pre_DSS_df
+
+post_DSS_df <- subset(sample_df, DSS == 'Post-DSS')
+post_DSS_df
+
+
+df_pre_treat <- df_rel_ab_fam_treat(pre_DSS_df)
+df_pre_treat
+
+df_post_treat <- df_rel_ab_fam_treat(post_DSS_df)
+df_post_treat
+
+
+
+#crass rel ab PBS - pre  -14 pre samples 
+
+pbs_crass_pre <- 0/14*100
+pbs_crass_pre
+
+#myoviridae rel ab HP - pre   -15 pre samples 
+hp_crass_pre <- 0.059744192/15*100
+hp_crass_pre
+
+
+#myoviridae rel ab UCP - pre  - 17 colonization samples 
+
+ucp_crass_pre <- 0.149267303/17*100
+ucp_crass_pre
+ 
+ 
+ #crass rel ab PBS - post  -6 post samples 
+
+ 
+pbs_crass_post <- 0.000474857/6*100
+pbs_crass_post  
+
+
+ 
+ #crass rel ab HP - post  -5 post samples 
+
+ 
+HP_crass_post <- 0.012699148/5*100
+HP_crass_post  
+
+
+
+ #crass rel ab UCP - post  -6 post samples 
+
+ 
+UCP_crass_post <- 1.138665340/6*100
+UCP_crass_post  
+
+
+
+#crAssphage fold-change in relative abundance after DSS 
+
+
+fc_crass_PBS <- pbs_crass_post/pbs_crass_pre #undefined 
+fc_crass_PBS
+
+fc_crass_HP <- HP_crass_post/hp_crass_pre
+fc_crass_HP 
+
+fc_crass_UC <- UCP_crass_post/ucp_crass_pre
+fc_crass_UC
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+#takes the df with summed relative abundance and ID for facet wrapping 
+
+
+plot_rel_ab_fam_treat_facet_wrap <- function(df) {
+
+color_map <- c('Unclassified Caudovirales' = '#F6B762', 'crAss-like phage' = '#CBC3E3','Circoviridae' = 'black', 'Inoviridae' = '#C7D267', 'Mimiviridae' = 'red', 'Microviridae' = '#E48883', 'Myoviridae' = '#96A8C1', 'Phycodnaviridae' = '#B8B29F', 'Podoviridae' =  '#CDD796', 'Polydnaviridae' =  'purple', 'Potyviridae' =  'green', 'Poxviridae' = '#FCCDE5', 'Retroviridae' = 'grey', 'Siphoviridae' = '#D5EFBA', 'Unassigned' = '#C4A484' )
+
+
+color_map_select <- c('Unclassified Caudovirales', 'crAss-like phage', 'Microviridae', 'Myoviridae', 'Phycodnaviridae', 'Podoviridae', 'Siphoviridae', 'Unassigned' )
+
+
+#Grouping dataframe by treatment and family and summing relative abundances within each subgroup 
+
+plot <- ggplot(df , aes(fill= df$Family, y=df$SummedAbundance, x=df$Treatment)) +
+labs(x="Treatment") + labs(y="Relative abundance") + labs(fill="Family") + 
+geom_bar(position = "fill",stat ="identity")  +
+scale_fill_manual(breaks = color_map_select, values = color_map) +
+theme(axis.text.x=element_text(angle=90,hjust=1))
+plot + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=12)) +
+  facet_wrap(~ID)
+
+}
+
+
+
+```
+
+
+
+```{r}
+
+#using df function to make dfs 
+
+
+df_col_plot <- df_rel_ab_fam_treat(mice_df_col)
+df_gav_plot <- df_rel_ab_fam_treat(mice_df_gav)
+df_dss_plot <- df_rel_ab_fam_treat(mice_df_dss)
+df_17_plot <- df_rel_ab_fam_treat(mice_df_col_17)
+df_stock_plot <- df_rel_ab_fam_treat(stock_df)
+df_stock_no_micro_plot <- df_rel_ab_fam_treat(stock_df_no_microviridae)
+
+
+
+df_col_plot$ID = 'Colonization Period'
+df_gav_plot$ID = 'VLP Gavage Period'
+df_dss_plot$ID = 'DSS Washout Period'
+df_17_plot$ID = '17'
+df_stock_plot$ID = 'stock'
+df_stock_no_micro_plot$ID = 'stock_no_micro'
+
+df_all_fam = rbind(df_col_plot,df_gav_plot,df_dss_plot,df_17_plot,df_stock_plot,df_stock_no_micro_plot)
+
+df_all_mouse_fam = rbind(df_col_plot,df_gav_plot,df_dss_plot)
+neworder <- c("Colonization Period","VLP Gavage Period","DSS Washout Period")
+df_all_mouse_fam <- arrange(mutate(df_all_mouse_fam, ID=factor(ID,levels=neworder)),ID)
+
+
+plot_rel_ab_fam_treat_facet_wrap(df_all_mouse_fam)
+
+
+
+
+
+```
+
+
+
+```{r}
+
+#compares the relative abundance pre and post DSS 
+
+plot_rel_ab_lysogen <- function(df) {
+  
+   #Creating a color_map so that the labels are associated with a specific colour 
+color_map_lysogen <- c('virulent' = '#F6B762', 'temperate' = '#D5EFBA') 
+
+
+
+
+new_df <- df   %>% 
+       group_by(DSS,LifeCycle) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+    
+
+
+#only want to show temperate scaffolds
+
+new_df  <- subset(new_df, LifeCycle == 'temperate')
+
+
+
+plot <- ggplot(new_df , aes(fill= new_df$LifeCycle, y=new_df$SummedAbundance, x=new_df$DSS)) +
+labs(x="Treatment") + labs(y="Relative abundance") + labs(fill="Family") + 
+geom_bar(position = "fill", stat ="identity")  +
+scale_fill_brewer(palette = 'set1') +
+theme(axis.text.x=element_text(angle=90,hjust=1))
+
+plot + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=3.5))
+
+
+}
+
+```
+
+
+```{r}
+PBS_mice_df
+```
+
+
+```{r}
+#scale_fill_manual(breaks = color_map_select, values = color_map)
+
+color_map_lysogen <- c('Post-DSS' = 'black', 'Pre-DSS' = 'grey') 
+
+new_df_PBS <- PBS_mice_df   %>% 
+       group_by(DSS,LifeCycle) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+new_df_PBS
+
+#After summing abundance, I am totalling the abudnance within pre or post-DSS
+
+new_df_PBS1 <- new_df_PBS    %>% 
+      group_by(DSS) %>% 
+       summarise(totalab= sum(SummedAbundance))
+
+#joining the two dfs
+
+merged_df_PBS <- left_join(new_df_PBS1, new_df_PBS, by = 'DSS' )
+#calculating relative abundance 
+
+merged_df_PBS$relab <- merged_df_PBS$SummedAbundance/merged_df_PBS$totalab
+
+merged_df_PBS <- subset(merged_df_PBS, LifeCycle == 'temperate')
+merged_df_PBS
+
+
+merged_df_PBS$DSS <- factor(merged_df_PBS$DSS, levels=c("Pre-DSS", "Post-DSS"))
+
+
+plot_PBS_temperate <- ggplot(merged_df_PBS , aes(fill=DSS, y=relab, x=DSS)) +
+labs(x="") + labs(y="Relative abundance") + labs(fill="") + 
+geom_col( width = 0.5) +
+scale_fill_manual(values = color_map_lysogen)
+theme(axis.text.x=element_text(angle=90,hjust=1))
+
+plot_PBS_temperate + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=16))
+
+
+
+```
+
+
+```{r}
+#scale_fill_manual(breaks = color_map_select, values = color_map)
+
+color_map_lysogen <- c('Post-DSS' = '#0000FF', 'Pre-DSS' = '#A7C7E7') 
+
+new_df_HP <- HP_mice_df   %>% 
+       group_by(DSS,LifeCycle) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+new_df_HP
+
+#After summing abundance, I am totalling the abudnance within pre or post-DSS
+
+new_df_HP1 <- new_df_HP    %>% 
+      group_by(DSS) %>% 
+       summarise(totalab= sum(SummedAbundance))
+
+#joining the two dfs
+
+merged_df_HP <- left_join(new_df_HP1, new_df_HP, by = 'DSS' )
+#calculating relative abundance 
+
+merged_df_HP$relab <- merged_df_HP$SummedAbundance/merged_df_HP$totalab
+
+merged_df_HP <- subset(merged_df_HP, LifeCycle == 'temperate')
+merged_df_HP
+
+
+merged_df_HP$DSS <- factor(merged_df_HP$DSS, levels=c("Pre-DSS", "Post-DSS"))
+
+
+plot_HP_temperate <- ggplot(merged_df_HP , aes(fill=DSS, y=relab, x=DSS)) +
+labs(x="") + labs(y="Relative abundance") + labs(fill="") + 
+geom_col( width = 0.5) +
+scale_fill_manual(values = color_map_lysogen)
+theme(axis.text.x=element_text(angle=90,hjust=1)) + 
+  theme(relab = element_text(size = 20))  
+
+plot_HP_temperate + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=12))
+
+```
+
+
+```{r}
+#scale_fill_manual(breaks = color_map_select, values = color_map)
+
+color_map_lysogen <- c('Post-DSS' = '#FF0000', 'Pre-DSS' = '#ffcccb') 
+
+new_df_UCP <- UCP_mice_df   %>% 
+       group_by(DSS,LifeCycle) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+new_df_UCP
+
+#After summing abundance, I am totalling the abudnance within pre or post-DSS
+
+new_df_UCP1 <- new_df_UCP    %>% 
+      group_by(DSS) %>% 
+       summarise(totalab= sum(SummedAbundance))
+
+#joining the two dfs
+
+merged_df_UCP <- left_join(new_df_UCP1, new_df_UCP, by = 'DSS' )
+#calculating relative abundance 
+
+merged_df_UCP$relab <- merged_df_UCP$SummedAbundance/merged_df_UCP$totalab
+
+merged_df_UCP <- subset(merged_df_UCP, LifeCycle == 'temperate')
+merged_df_UCP
+
+
+merged_df_UCP$DSS <- factor(merged_df_UCP$DSS, levels=c("Pre-DSS", "Post-DSS"))
+
+
+plot_UCP_temperate <- ggplot(merged_df_UCP , aes(fill=DSS, y=relab, x=DSS)) +
+labs(x="") + labs(y="Relative abundance") + labs(fill="") + 
+geom_col( width = 0.5) +
+scale_fill_manual(values = color_map_lysogen)
+theme(axis.text.x=element_text(angle=90,hjust=1))
+
+plot_UCP_temperate + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=12))
+
+
+
+
+
+
+
+
+```
+```{r}
+
+
+
+#function to get df for making relative abundance of temperate VLPs 
+color_map_lysogen <- c('Post-DSS' = '#FF0000', 'Pre-DSS' = '#ffcccb') 
+
+
+plot_rel_ab_lysogen_df <- function(df) {
+
+new_df <- df   %>% 
+       group_by(DSS,LifeCycle) %>% 
+       summarise(SummedAbundance= sum(RelAbundance))
+new_df
+
+#After summing abundance, I am totalling the abudnance within pre or post-DSS
+
+new_df_1 <- new_df    %>% 
+      group_by(DSS) %>% 
+       summarise(totalab= sum(SummedAbundance))
+
+#joining the two dfs
+
+merged_df <- left_join(new_df, new_df_1, by = 'DSS' )
+#calculating relative abundance 
+
+merged_df$relab <- merged_df$SummedAbundance/merged_df$totalab
+
+merged_df <- subset(merged_df, LifeCycle == 'temperate')
+merged_df }
+
+
+```
+
+```{r}
+cage11_df
+```
+
+
+```{r}
+#getting dfs to plot cage rel ab 
+
+cage11_df_temperate <-  plot_rel_ab_lysogen_df(cage11_df)
+cage12_df_temperate <-  plot_rel_ab_lysogen_df(cage12_df)
+cage13_df_temperate <-  plot_rel_ab_lysogen_df(cage13_df)
+cage11_df_temperate
+
+cage21_df_temperate <-  plot_rel_ab_lysogen_df(cage21_df)
+cage22_df_temperate <-  plot_rel_ab_lysogen_df(cage22_df)
+cage23_df_temperate <-  plot_rel_ab_lysogen_df(cage23_df)
+
+cage31_df_temperate <-  plot_rel_ab_lysogen_df(cage31_df)
+cage32_df_temperate <-  plot_rel_ab_lysogen_df(cage32_df)
+cage33_df_temperate <-  plot_rel_ab_lysogen_df(cage33_df)
+
+
+
+
+cage11_df_temperate$ID = 'Cage1-1'
+cage12_df_temperate$ID = 'Cage1-2'
+cage13_df_temperate$ID = 'Cage1-3'
+cage21_df_temperate$ID = 'Cage2-1'
+cage22_df_temperate$ID = 'Cage2-2'
+cage23_df_temperate$ID = 'Cage2-3'
+cage31_df_temperate$ID = 'Cage3-1'
+cage32_df_temperate$ID = 'Cage3-2'
+cage33_df_temperate$ID = 'Cage3-3'
+
+df_all_temperate_cage <- rbind(cage11_df_temperate,cage12_df_temperate,cage13_df_temperate,cage21_df_temperate,cage22_df_temperate,cage23_df_temperate, cage31_df_temperate,cage32_df_temperate,cage33_df_temperate)
+
+df_all_temperate_cage
+
+
+plot_cage_temperate <- ggplot(df_all_temperate_cage , aes(fill=DSS, y=relab, x=DSS)) +
+labs(x="") + labs(y="Relative abundance") + labs(fill="") + 
+geom_col( width = 0.5) +
+scale_fill_manual(values = color_map_lysogen)
+theme(axis.text.x=element_text(angle=90,hjust=1))
+
+plot_cage_temperate + theme_classic() +
+  theme(text=element_text(family="Arial", face="bold", size=12)) + 
+  facet_wrap(~ID)
+
+
+
+
+
+```
+```{r}
+sample_31_25_df
+```
+
+```{r}
+#getting dfs to plot richness by cage over time -scaffold level - validating that this works for a single sample 
+
+
+sample_31_25_df
+
+sample_31_25_df_richness <- sample_31_25_df  %>% 
+       group_by(Sample) %>% 
+       summarise(Richness= NROW(unique(ContigName)))
+                
+
+#does the richness value calculated = the number of rows in the sample df 
+
+sample_31_25_df_richness$Richness == NROW(sample_31_25_df)
+
+
+#same as above - except I am calculating richness using VCs 
+
+
+
+sample_31_25_df_richness_vc <- sample_31_25_df
+
+##converting anything with those values to be named with its contig name 
+
+setDT(sample_31_25_df_richness_vc)           ## converts to data.table by reference, no need for `<-`
+
+sample_31_25_df_richness_vc[ ViralCluster == "Outlier", ViralCluster := ContigName ]
+sample_31_25_df_richness_vc[ ViralCluster == "Overlap", ViralCluster := ContigName ]
+sample_31_25_df_richness_vc[ ViralCluster == "Singleton", ViralCluster := ContigName ]
+
+
+length(unique(sample_31_25_df_richness_vc$ViralCluster)) #134 unique VCs
+
+
+
+sample_31_25_df_richness_vc <- sample_31_25_df_richness_vc  %>% 
+       group_by(Sample) %>% 
+       summarise(Richness= NROW(unique(ViralCluster)))
+                
+
+sample_31_25_df_richness_vc 
+
+
+```
+
+```{r}
+
+#now doing this for all of mouse samples -richness at scaffold level 
+
+
+mice_df_richness <- mice_df
+
+setDT(mice_df_richness)           ## converts to data.table by reference, no need for `<-`
+
+mice_df_richness[ ViralCluster == "Outlier", ViralCluster := ContigName ]
+mice_df_richness[ ViralCluster == "Overlap", ViralCluster := ContigName ]
+mice_df_richness[ ViralCluster == "Singleton", ViralCluster := ContigName ]
+
+mice_df_richness <- mice_df  %>% 
+       group_by(Sample) %>% 
+       summarise(Richness= NROW(unique(ContigName)))
+        
+
+#now adding date, cage, period, treatment info back in 
+mice_df_richness
+
+
+
+mice_df_richness <- mice_df_richness %>% 
+    mutate(Treatment = case_when(str_sub(Sample, 1, 1) == 3 ~ 'UCP', str_sub(Sample, 1, 1) == 2 ~ 'HP', str_sub(Sample, 1, 1) == 1 ~ 'PBS', TRUE ~ 'NA'))
+           
+          
+#adding new  "date" based on date
+
+
+mice_df_richness <- mice_df_richness %>% 
+    mutate(Date = case_when(substrRight(Sample, 2) == '03' ~ '7', substrRight(Sample, 2) == '10' ~ '14', substrRight(Sample, 2) == '17' ~ '21',substrRight(Sample, 2) == '18' ~ '22', substrRight(Sample, 2) == '22' ~ '26', substrRight(Sample, 2) == '25' ~ '29', substrRight(Sample, 2) == '02' ~ '37', substrRight(Sample, 2) == '04' ~ '39', TRUE ~ 'NA'))
+
+
+#now add 'Periods' based on these dates 
+
+mice_df_richness <- mice_df_richness %>%
+    mutate(Period = case_when(Date == '7'~ 'Colonization', Date == '14' ~ 'Colonization', Date == '21'~ 'Colonization', Date == '22'~ 'Gavage', Date == '26'~ 'Gavage', Date == '29'~ 'Gavage', Date == '37'~ 'DSS+washout', Date == '39'~ 'DSS+washout', TRUE ~ 'NA'))
+
+
+#now add 'pre-VLP gaage' based on these dates 
+mice_df_richness <- mice_df_richness %>%
+    mutate(DSS = case_when(Date == '7'~ 'Pre-DSS', Date == '14' ~ 'Pre-DSS', Date == '21'~ 'Pre-DSS', Date == '22'~ 'Pre-DSS', Date == '26'~ 'Pre-DSS', Date == '29'~ 'Pre-DSS', Date == '37'~ 'Post-DSS', Date == '39'~ 'Post-DSS', TRUE ~ 'NA'))
+
+
+#now add cage info 
+mice_df_richness <- mice_df_richness %>% 
+    mutate(Cage = case_when(substr(Sample, 1, 3) == '1-1' ~ 'cage1-1', substr(Sample, 1, 3) == '1-2' ~ 'cage1-2',substr(Sample, 1, 3) == '1-3' ~ 'cage1-3',substr(Sample, 1, 3) == '2-1' ~ 'cage2-1', substr(Sample, 1, 3) == '2-2' ~ 'cage2-2', substr(Sample, 1, 3) == '2-3' ~ 'cage2-3', substr(Sample, 1, 3) == '3-1' ~ 'cage3-1', substr(Sample, 1, 3) == '3-2' ~ 'cage3-2',  substr(Sample, 1, 3) == '3-3' ~ 'cage3-3', TRUE ~ 'NA'))
+
+mice_df_richness
+
+
+
+```
+
+
+```{r}
+
+#getting dfs to plot richness by cage over time -vc level - validating that this works for a single sample 
+
+mice_df
+
+mice_df_richness_vc <- mice_df  %>% 
+       group_by(Sample) %>% 
+       summarise(Richness= NROW(unique(ViralCluster)))
+        
+
+#now adding date, cage, period, treatment info 
+mice_df_richness_vc
+
+
+
+mice_df_richness_vc <- mice_df_richness_vc %>% 
+    mutate(Treatment = case_when(str_sub(Sample, 1, 1) == 3 ~ 'UCP', str_sub(Sample, 1, 1) == 2 ~ 'HP', str_sub(Sample, 1, 1) == 1 ~ 'PBS', TRUE ~ 'NA'))
+           
+          
+#adding new  "date" based on date
+
+
+mice_df_richness_vc <- mice_df_richness_vc %>% 
+    mutate(Date = case_when(substrRight(Sample, 2) == '03' ~ '7', substrRight(Sample, 2) == '10' ~ '14', substrRight(Sample, 2) == '17' ~ '21',substrRight(Sample, 2) == '18' ~ '22', substrRight(Sample, 2) == '22' ~ '26', substrRight(Sample, 2) == '25' ~ '29', substrRight(Sample, 2) == '02' ~ '37', substrRight(Sample, 2) == '04' ~ '39', TRUE ~ 'NA'))
+
+
+#now add 'Periods' based on these dates 
+
+mice_df_richness_vc <- mice_df_richness_vc %>%
+    mutate(Period = case_when(Date == '7'~ 'Colonization', Date == '14' ~ 'Colonization', Date == '21'~ 'Colonization', Date == '22'~ 'Gavage', Date == '26'~ 'Gavage', Date == '29'~ 'Gavage', Date == '37'~ 'DSS+washout', Date == '39'~ 'DSS+washout', TRUE ~ 'NA'))
+
+
+#now add 'pre-VLP gaage' based on these dates 
+mice_df_richness_vc <- mice_df_richness_vc %>%
+    mutate(DSS = case_when(Date == '7'~ 'Pre-DSS', Date == '14' ~ 'Pre-DSS', Date == '21'~ 'Pre-DSS', Date == '22'~ 'Pre-DSS', Date == '26'~ 'Pre-DSS', Date == '29'~ 'Pre-DSS', Date == '37'~ 'Post-DSS', Date == '39'~ 'Post-DSS', TRUE ~ 'NA'))
+
+
+#now add cage info 
+mice_df_richness_vc <- mice_df_richness_vc %>% 
+    mutate(Cage = case_when(substr(Sample, 1, 3) == '1-1' ~ 'cage1-1', substr(Sample, 1, 3) == '1-2' ~ 'cage1-2',substr(Sample, 1, 3) == '1-3' ~ 'cage1-3',substr(Sample, 1, 3) == '2-1' ~ 'cage2-1', substr(Sample, 1, 3) == '2-2' ~ 'cage2-2', substr(Sample, 1, 3) == '2-3' ~ 'cage2-3', substr(Sample, 1, 3) == '3-1' ~ 'cage3-1', substr(Sample, 1, 3) == '3-2' ~ 'cage3-2',  substr(Sample, 1, 3) == '3-3' ~ 'cage3-3', TRUE ~ 'NA'))
+
+mice_df_richness_vc
+
+```
+
+
+```{r}
+#how does each cage change over time - in terms of richness ? 
+
+
+
+
+mice_df_richness_vc$Date <- as.numeric(as.character(mice_df_richness_vc$Date))
+mice_df_richness_vc
+
+
+
+
+richness_cage_plot_vc <- ggplot(mice_df_richness_vc, aes(x = Date, y = Richness, colour = Cage,  group = Cage)) +
+ geom_line()
+
+
+
+mice_df_richness$Date <- as.numeric(as.character(mice_df_richness$Date))
+mice_df_richness
+
+
+richness_cage_plot_scaf <-  ggplot(mice_df_richness, aes(x = Date, y = Richness, colour = Cage,  group = Cage)) +
+geom_line()
+
+
+
+write.csv(mice_df_richness, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/diversity/richness/scaffold_richness.csv")
+
+write.csv(mice_df_richness_vc, "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/diversity/richness/scaffold_richness_vc.csv")
+
+```
+
+
+
+
+```{r}
+
+ library(dplyr)
+
+color_map_richness <- c('PBS' = 'black', 'HP' = '#0000FF', 'UCP' = '#FF0000') 
+
+
+data_sum_scaf_richness <- ddply(mice_df_richness, c("Date", "Treatment"), summarise,
+               N    = length(Richness),
+               Richness = mean(Richness),
+               sd   = sd(Richness),
+               se   = sd / sqrt(N)
+)
+
+
+richness_treat_plot_scaf <- ggplot(data_sum_scaf_richness, aes(x = Date, y = Richness, colour = Treatment,  group = Treatment)) +
+  scale_color_manual(values=color_map_richness ) +
+ geom_line()
+
+
+richness_treat_plot_scaf
+
+```
+```{r}
+color_map_richness <- c('PBS' = 'black', 'HP' = '#0000FF', 'UCP' = '#FF0000') 
+
+data_sum_vc_richness <- ddply(mice_df_richness_vc, c("Date", "Treatment"), summarise,
+               N    = length(Richness),
+               Richness = mean(Richness),
+               sd   = sd(Richness),
+               se   = sd / sqrt(N), )
+
+
+
+data_sum_vc_richness
+richness_treat_plot_vc <- ggplot(data_sum_vc_richness, aes(x = Date, y = Richness, colour = Treatment,  group = Treatment)) +
+  scale_color_manual(values=color_map_richness ) + 
+  geom_errorbar(aes(ymin=Richness-se, ymax=Richness+se), width=1,position=position_dodge(.9))  +
+ geom_line()
+
+
+richness_treat_plot_vc
+```
+
+
+
+
+
+
+
