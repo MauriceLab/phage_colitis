@@ -1,0 +1,841 @@
+---
+title: "mouse-diversity_stock_lib_manuscript"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r}
+library(vegan)
+library(RColorBrewer)
+library(ggplot2)
+```
+
+
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library("RColorBrewer")
+library(phyloseq)
+```
+
+
+
+
+```{r}
+#parsing the coverage-converter to incorporate appropriate sample-specific metadata
+
+sample_df <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/coverage_converter/0.7/merged-geneious_output_0.7.csv")
+
+
+
+#adding new column "treatment" based on VLP treatment 
+
+
+sample_df <- sample_df %>% 
+    mutate(Treatment = case_when(Sample == 'IDT_i5_10' ~ 'UCP_stock', Sample == 'IDT_i5_146' ~ 'UCP_stock', Sample == 'IDT_i5_158' ~ 'UCP_stock', Sample == 'IDT_i5_170' ~ 'UCP_stock', Sample == 'IDT_i5_57' ~ 'UCP_stock', Sample == 'IDT_i5_21' ~ 'HP_stock', Sample == 'IDT_i5_45' ~ 'HP_stock', Sample == 'IDT_i5_69' ~ 'HP_stock', Sample == 'IDT_i5_93' ~ 'HP_stock', Sample == 'IDT_i5_45' ~ 'HP_stock', str_sub(Sample, 1, 1) == 3 ~ 'UCP', str_sub(Sample, 1, 1) == 2 ~ 'HP', str_sub(Sample, 1, 1) == 1 ~ 'PBS', TRUE ~ 'NA'))
+           
+
+          
+#adding new column "date" based on date
+
+#first creating a function to take n characters from the end 
+
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+#taking the last two characters fromt he sample collection and changing to the number of days from experiment start
+#note that some of the stocks end with those 2 characters, first, create a character to label whether a sample comes from a stock
+
+sample_df <- sample_df %>%
+    mutate(Stock = case_when(substr(Sample, 1, 3) == 'IDT' ~ 'stock', TRUE ~ 'no'))
+
+
+sample_df <- sample_df %>% 
+    mutate(Date = case_when(substrRight(Sample, 2) == '03' ~ '7', substrRight(Sample, 2) == '10' ~ '14', substrRight(Sample, 2) == '17' ~ '21',substrRight(Sample, 2) == '18' ~ '22', substrRight(Sample, 2) == '22' ~ '26', substrRight(Sample, 2) == '25' ~ '29', substrRight(Sample, 2) == '02' ~ '37', substrRight(Sample, 2) == '04' ~ '39', Stock == 'yes' ~ 'NA', TRUE ~ 'NA'))
+
+
+#now add 'Periods' based on these dates 
+
+sample_df <- sample_df %>%
+    mutate(Period = case_when(Date == '7'~ 'Colonization', Date == '14' ~ 'Colonization', Date == '21'~ 'Colonization', Date == '22'~ 'Gavage', Date == '26'~ 'Gavage', Date == '29'~ 'Gavage', Date == '37'~ 'DSS+washout', Date == '39'~ 'DSS+washout', TRUE ~ 'NA'))
+
+
+
+```
+
+
+```{r}
+UCP_mice_df   <-  subset(sample_df, Treatment == 'UCP') 
+UCP_stock_df <- subset(stock_df, Treatment == 'UCP_stock')
+
+
+UC_df <- rbind(UCP_mice_df, UCP_stock_df)
+
+UC_df
+
+
+
+HP_mice_df   <-  subset(sample_df, Treatment == 'HP') 
+HP_stock_df <- subset(stock_df, Treatment == 'HP_stock')
+
+
+HP_df <- rbind(HP_mice_df, HP_stock_df)
+
+HP_df
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+
+
+df_7  <-  sample_df[sample_df$Date == '7',]
+df_14 <- sample_df[sample_df$Date == '14',]
+df_21 <- sample_df[sample_df$Date == '21',]
+df_22 <- sample_df[sample_df$Date == '22',]
+df_26 <- sample_df[sample_df$Date == '26',]
+df_29 <- sample_df[sample_df$Date == '29',]
+df_37 <- sample_df[sample_df$Date == '37',]
+df_39 <- sample_df[sample_df$Date == '39',]
+
+#subsetting DF's by period 
+
+df_col <- sample_df[sample_df$Period == 'Colonization',]
+df_gav <- sample_df[sample_df$Period == 'Gavage',]
+df_dss <- sample_df[sample_df$Period == 'DSS+washout',]
+
+
+#subsetting DFs for all UCO 
+
+
+
+
+write.csv(df_7, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_7.csv')
+write.csv(df_14, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_14.csv')
+write.csv(df_21, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_21.csv')
+write.csv(df_22,'/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_22.csv' )
+write.csv(df_26, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_26.csv')
+write.csv(df_29, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_29.csv')
+write.csv(df_37, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_37.csv')
+write.csv(df_39, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_dfs/date_39.csv')
+write.csv(df_col, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_dfs/col_df.csv')
+write_csv(df_gav, '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_dfs/gav_df.csv')
+write_csv(df_dss,  '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_dfs/dss_df.csv')
+
+
+write_csv(UC_df,  '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_dfs/UC_df.csv')
+
+write_csv(HP_df,  '/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_dfs/HP_df.csv')
+
+
+
+```
+
+```{r}
+#making functions for plotting and performing adonis PERMANOVA 
+  #IMPORTANT: ONLY USE ON DATES WHEN ALL GROUPS HAVE 3 SAMPLES - Make sure input DF has the following order: PBS x 3, HP x 3. UCP x3 
+
+#this function will display the NMDS plot, stress plot, and associated stress value 
+
+NMDS_plot <- function(day_df) {
+
+day_df
+  
+treatment=c(rep("PBS",3),rep("healthy", 3), rep("UC",3)) 
+colors=c(rep("black",3),rep("blue",3), rep("red",3))
+
+treatment.df <- data.frame(treatment=c(rep("PBS",3),rep("healthy",3),rep("UC",3)), day_df)
+
+treatment.df
+
+my.matrix <- as.matrix(day_df)
+
+NMDS <- metaMDS(my.matrix, distance = 'bray', k=2)
+
+
+plot.NMDS <-ordiplot(NMDS,type="n", cex.axis =2)
+
+points(NMDS, col=colors, pch=16, cex = 3 )
+
+plot.NMDS 
+stressplot(NMDS)
+
+  
+
+BC <-vegdist(my.matrix, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+set.seed(1)
+
+perm_adonis <- adonis2(formula = BC ~ treatment, data = treatment.df , permutations = 999) 
+
+NMDS
+
+
+}
+
+
+#this function will output adonis PERMANOVA statistics
+
+adonis_perm <- function(day_df) {
+
+day_df
+  
+treatment=c(rep("PBS",3),rep("healthy", 3), rep("UC",3)) 
+colors=c(rep("black",3),rep("blue",3), rep("red",3))
+
+treatment.df <- data.frame(treatment=c(rep("PBS",3),rep("healthy",3),rep("UC",3)), day_df)
+
+my.matrix <- as.matrix(day_df)
+
+
+
+BC <-vegdist(my.matrix, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+set.seed(1)
+
+perm_adonis <- adonis2(formula = BC ~ treatment, data = treatment.df , permutations = 999) 
+perm_adonis
+
+}
+
+
+```
+
+
+
+```{r} 
+
+#reading in matrices : scaffolds 
+
+#day 7: scaffolds - missing one HP sample and one PBS 
+my.data.7.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_7_scaf.csv", row.names = 1)
+
+
+#day 14: scaffolds - missing two HP and one PBS and one UCP sample 
+my.data.14.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_14_scaf.csv", row.names = 1)
+
+
+#day 21: scaffolds - all samples present 
+my.data.21.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_21_scaf.csv",  row.names = 1)
+
+
+#day 22: scaffolds - all samples present 
+my.data.22.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_22_scaf.csv", row.names = 1)
+
+
+#day 26: scaffolds - all samples present 
+my.data.26.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_26_scaf.csv", row.names = 1)
+
+#day 29: scaffolds - missing 1 PBS sample
+my.data.29.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_29_scaf.csv", row.names = 1)
+
+
+#day 37: scaffolds - missing one HP sample 
+my.data.37.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_37_scaf.csv", row.names = 1)
+
+
+#day 39: scaffolds - all samples present
+my.data.39.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_scaf/matrix_day_39_scaf.csv", row.names = 1)
+
+
+
+
+```
+
+
+```{r}
+#Generating NMDS and performing PERMANOVA on all samples (between period, cage, treatment ) - scaffold level 
+
+my.data.whole.expt.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/whole_expt_matrix_scaf/whole_expt_matrix.csv", row.names = 1)
+
+my.data.whole.expt.scaf.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/whole_expt_matrix_scaf/whole_expt_matrix_meta.csv")
+
+
+
+treatment=c(rep("PBS",20),rep("healthy", 20), rep("UC",23)) 
+colors=c(rep("black",20),rep("blue",20), rep("red",23))
+
+
+my.data.whole.expt.scaf.matrix
+
+my.data.whole.expt.scaf.meta
+
+
+
+my.matrix.whole.expt.scaf <- as.matrix(my.data.whole.expt.scaf.matrix)
+
+
+
+NMDS.scaf.whole.expt <- metaMDS(my.matrix.whole.expt.scaf, k=2)
+
+NMDS.scaf.whole.expt
+
+plot.NMDS.whole.expt <-ordiplot(NMDS.scaf.whole.expt,type="n", cex.axis =2)
+
+points(NMDS.scaf.whole.expt, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.whole.expt
+
+stressplot(NMDS.scaf.whole.expt)
+
+
+
+BC.perm.whole.expt.scaf <-vegdist(my.matrix.whole.expt.scaf, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.whole.expt.scaf.treat <- adonis2(formula = BC.perm.whole.expt.scaf ~ Treatment, data = my.data.whole.expt.scaf.meta , permutations = 999)
+perm.whole.expt.scaf.period <- adonis2(formula = BC.perm.whole.expt.scaf ~ Period, data = my.data.whole.expt.scaf.meta , permutations = 999)
+perm.whole.expt.scaf.cage <- adonis2(formula = BC.perm.whole.expt.scaf ~ Cage, data = my.data.whole.expt.scaf.meta , permutations = 999)
+
+
+#perm.whole.expt.scaf.treat
+#perm.whole.expt.scaf.period
+perm.whole.expt.scaf.cage
+```
+
+
+
+
+```{r}
+#Generating NMDS and performing PERMANOVA on colonization period samples (between period, cage, treatment ) - scaffold level 
+
+my.data.col.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_scaf/col_matrix.csv", row.names = 1)
+
+my.data.col.scaf.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_scaf/col_matrix_metadata.csv")
+
+
+
+treatment=c(rep("PBS",7),rep("healthy",6), rep("UC",8)) 
+colors=c(rep("black",7),rep("blue",6), rep("red",8))
+
+
+
+
+my.data.col.scaf.meta
+
+
+
+my.matrix.col.scaf <- as.matrix(my.data.col.scaf.matrix)
+
+
+
+NMDS.scaf.col <- metaMDS(my.matrix.col.scaf, k=2)
+
+NMDS.scaf.col
+
+plot.NMDS.col <-ordiplot(NMDS.scaf.col,type="n", cex.axis =2)
+
+points(NMDS.scaf.col, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.col
+
+stressplot(NMDS.scaf.col)
+
+
+
+BC.perm.col.scaf <-vegdist(my.matrix.col.scaf, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.col.scaf.treat <- adonis2(formula = BC.perm.col.scaf ~ Treatment, data = my.data.col.scaf.meta , permutations = 999)
+perm.col.scaf.treat
+```
+
+
+
+
+```{r}
+#Generating NMDS and performing PERMANOVA on gavage period samples (between period, cage, treatment ) - scaffold level 
+
+my.data.gav.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_scaf/gav_matrix.csv", row.names = 1)
+
+my.data.gav.scaf.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_scaf/gav_matrix_meta.csv")
+
+
+
+treatment=c(rep("PBS",7),rep("healthy",9), rep("UC",9)) 
+colors=c(rep("black",7),rep("blue",9), rep("red",9))
+
+
+
+
+my.data.gav.scaf.meta
+
+
+
+my.matrix.gav.scaf <- as.matrix(my.data.gav.scaf.matrix)
+
+
+
+NMDS.scaf.gav <- metaMDS(my.matrix.gav.scaf, k=2)
+
+NMDS.scaf.gav
+
+plot.NMDS.gav <-ordiplot(NMDS.scaf.gav,type="n", cex.axis =2)
+
+points(NMDS.scaf.gav, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.gav
+
+stressplot(NMDS.scaf.gav)
+
+
+
+BC.perm.gav.scaf <-vegdist(my.matrix.gav.scaf, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.gav.scaf.treat <- adonis2(formula = BC.perm.gav.scaf ~ Treatment, data = my.data.gav.scaf.meta , permutations = 999)
+perm.gav.scaf.treat
+```
+```{r}
+#Generating NMDS and performing PERMANOVA on gavage period samples (between period, cage, treatment ) - scaffold level 
+
+my.data.dss.scaf.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_scaf/dss_matrix.csv", row.names = 1)
+
+my.data.dss.scaf.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_scaf/dss_matrix_meta.csv")
+
+
+
+treatment=c(rep("PBS",6),rep("healthy",5), rep("UC",6)) 
+colors=c(rep("black",6),rep("blue",5), rep("red",6))
+
+
+
+
+my.data.dss.scaf.meta
+
+
+
+my.matrix.dss.scaf <- as.matrix(my.data.dss.scaf.matrix)
+
+
+
+NMDS.scaf.dss <- metaMDS(my.matrix.dss.scaf, k=2)
+
+NMDS.scaf.dss
+
+plot.NMDS.dss <-ordiplot(NMDS.scaf.dss,type="n", cex.axis =2)
+
+points(NMDS.scaf.dss, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.dss
+
+stressplot(NMDS.scaf.dss)
+
+
+
+BC.perm.dss.scaf <-vegdist(my.matrix.dss.scaf, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.dss.scaf.treat <- adonis2(formula = BC.perm.dss.scaf ~ Treatment, data = my.data.dss.scaf.meta , permutations = 999)
+perm.dss.scaf.treat
+```
+
+
+
+
+```{r}
+#scaffolds- day 21 - last day of baseline - trending towards a significant difference 
+
+my.data.21.scaf.matrix
+NMDS_plot(my.data.21.scaf.matrix)
+adonis_perm(my.data.21.scaf.matrix)
+ 
+```
+
+```{r}
+#scaffolds- day 22 
+
+my.data.22.scaf.matrix
+NMDS_plot(my.data.22.scaf.matrix)
+adonis_perm(my.data.22.scaf.matrix)
+
+
+```
+
+```{r}
+#scaffolds- day 26
+
+
+my.data.26.scaf.matrix
+NMDS_plot(my.data.26.scaf.matrix)
+adonis_perm(my.data.26.scaf.matrix)
+
+```
+
+```{r}
+
+#scaffolds- day 39
+
+
+my.data.39.scaf.matrix
+NMDS_plot(my.data.39.scaf.matrix)
+adonis_perm(my.data.39.scaf.matrix)
+
+```
+
+
+
+
+
+
+```{r}
+#reading in matrices : VCs
+
+
+
+#day 7: VC - missing one HP sample and one PBS 
+my.data.7.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_7_vc.csv", row.names = 1)
+
+
+#day 14: VC - missing two HP and one PBS and one UCP sample 
+my.data.14.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_14_vc.csv", row.names = 1)
+
+
+#day 21: VC - all samples present 
+my.data.21.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_21_vc.csv",  row.names = 1)
+
+
+#day 22: VC - all samples present 
+my.data.22.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_22_vc.csv", row.names = 1)
+
+
+#day 26: VC - all samples present 
+my.data.26.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_26_vc.csv", row.names = 1)
+
+#day 29: VC - missing 1 PBS sample
+my.data.29.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_29_vc.csv", row.names = 1)
+
+
+#day 37: VC - missing one HP sample 
+my.data.37.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_37_vc.csv", row.names = 1)
+
+
+#day 39: VC - all samples present
+my.data.39.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/date_matrices_vcs/matrix_day_39_vc.csv", row.names = 1)
+
+
+
+my.data.UC.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/stocks_mice_matrix_vc/UC_stocks_mice_matrix_vc.csv", row.names = 1)
+
+
+
+my.data.HP.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/stocks_mice_matrix_vc/HP_stocks_mice_matrix_vc.csv", row.names = 1)
+
+
+
+
+```
+
+```{r}
+
+#Generating NMDS and performing PERMANOVA on all samples (between period, cage, treatment ) - vc level 
+
+my.data.whole.expt.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/whole_expt_matrix_vcs/whole_expt_vc.csv", row.names = 1)
+
+my.data.whole.expt.vc.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/whole_expt_matrix_vcs/whole_expt_vc_meta.csv")
+
+
+
+treatment=c(rep("PBS",20),rep("healthy", 20), rep("UC",23)) 
+colors=c(rep("black",20),rep("blue",20), rep("red",23))
+
+
+my.data.whole.expt.vc.matrix
+
+my.data.whole.expt.vc.meta
+
+
+
+my.matrix.whole.expt.vc <- as.matrix(my.data.whole.expt.vc.matrix)
+
+
+
+NMDS.vc.whole.expt <- metaMDS(my.matrix.whole.expt.vc, k=2)
+
+NMDS.vc.whole.expt
+
+plot.NMDS.whole.expt.vc <-ordiplot(NMDS.vc.whole.expt,type="n", cex.axis =2)
+
+points(NMDS.vc.whole.expt, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.whole.expt.vc
+
+stressplot(NMDS.vc.whole.expt)
+
+
+
+BC.perm.whole.expt.vc <-vegdist(my.matrix.whole.expt.vc, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.whole.expt.vc.treat <- adonis2(formula = BC.perm.whole.expt.vc ~ Treatment, data = my.data.whole.expt.vc.meta , permutations = 999)
+perm.whole.expt.vc.period <- adonis2(formula = BC.perm.whole.expt.vc ~ Period, data = my.data.whole.expt.vc.meta , permutations = 999)
+perm.whole.expt.vc.cage <- adonis2(formula = BC.perm.whole.expt.vc ~ Cage, data = my.data.whole.expt.vc.meta , permutations = 999)
+
+perm.whole.expt.vc.treat
+perm.whole.expt.vc.period
+perm.whole.expt.vc.cage
+```
+
+```{r}
+#Generating NMDS and performing PERMANOVA on colonization period samples (between period, cage, treatment ) - vc level 
+
+my.data.col.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_vcs/col_vcs.csv", row.names = 1)
+
+my.data.col.vc.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_vcs/col_vcs_meta.csv")
+
+
+
+treatment=c(rep("PBS",7),rep("healthy",6), rep("UC",8)) 
+colors=c(rep("black",7),rep("blue",6), rep("red",8))
+
+
+
+
+
+
+
+
+my.matrix.col.vc <- as.matrix(my.data.col.vc.matrix)
+
+
+
+NMDS.vc.col <- metaMDS(my.matrix.col.vc, k=2)
+
+NMDS.vc.col
+
+plot.NMDS.col.vc <-ordiplot(NMDS.vc.col,type="n", cex.axis =2)
+
+points(NMDS.vc.col, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.col.vc
+
+stressplot(NMDS.vc.col)
+
+
+
+BC.perm.col.vc <-vegdist(my.matrix.col.vc, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.col.vc.treat <- adonis2(formula = BC.perm.col.vc ~ Treatment, data = my.data.col.vc.meta , permutations = 999)
+perm.col.vc.treat
+```
+
+
+```{r}
+
+#Generating NMDS and performing PERMANOVA on gavage period samples (between period, cage, treatment ) - scaffold level 
+
+my.data.gav.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_vcs/gav_vcs.csv", row.names = 1)
+
+my.data.gav.vc.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_vcs/gav_vcs_meta.csv")
+
+
+
+treatment=c(rep("PBS",7),rep("healthy",9), rep("UC",9)) 
+colors=c(rep("black",7),rep("blue",9), rep("red",9))
+
+
+
+
+my.data.gav.vc.meta
+
+
+
+my.matrix.gav.vc <- as.matrix(my.data.gav.vc.matrix)
+
+
+
+NMDS.vc.gav <- metaMDS(my.matrix.gav.vc, k=2)
+
+NMDS.vc.gav
+
+plot.NMDS.gav.vc <-ordiplot(NMDS.vc.gav,type="n", cex.axis =2)
+
+points(NMDS.vc.gav, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.gav.vc
+
+stressplot(NMDS.vc.gav)
+
+
+
+BC.perm.gav.vc <-vegdist(my.matrix.gav.vc, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.gav.vc.treat <- adonis2(formula = BC.perm.gav.vc ~ Treatment, data = my.data.gav.vc.meta , permutations = 999)
+perm.gav.vc.treat
+
+```
+
+
+```{r}
+
+#Generating NMDS and performing PERMANOVA on DSS period samples (between period, cage, treatment ) - scaffold level 
+
+my.data.dss.vc.matrix <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_vcs/dss_vc.csv", row.names = 1)
+
+my.data.dss.vc.meta <- read.csv("/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/matrices/period_matrices_vcs/dss_vc_meta.csv")
+
+
+
+treatment=c(rep("PBS",6),rep("healthy",5), rep("UC",6)) 
+colors=c(rep("black",6),rep("blue",5), rep("red",6))
+
+
+
+
+my.data.dss.vc.meta
+
+
+
+my.matrix.dss.vc <- as.matrix(my.data.dss.vc.matrix)
+
+
+
+NMDS.vc.dss <- metaMDS(my.matrix.dss.vc, k=2)
+
+NMDS.vc.dss
+
+plot.NMDS.dss.vc <-ordiplot(NMDS.vc.dss,type="n", cex.axis =2)
+
+points(NMDS.vc.dss, col=colors, pch=16, cex = 2 )
+
+
+plot.NMDS.dss.vc
+
+stressplot(NMDS.vc.dss)
+
+
+
+BC.perm.dss.vc <-vegdist(my.matrix.dss.vc, method="bray", binary=FALSE, diag=FALSE, upper=FALSE, na.rm = FALSE)
+perm.dss.vc.treat <- adonis2(formula = BC.perm.dss.vc ~ Treatment, data = my.data.dss.vc.meta , permutations = 999)
+perm.dss.vc.treat
+
+```
+
+
+
+
+```{r}
+#VCs- day 21 
+my.data.21.vc.matrix
+NMDS_plot(my.data.21.vc.matrix)
+adonis_perm(my.data.21.vc.matrix)
+
+
+```
+
+
+```{r}
+#VCs- day 22 
+my.data.22.vc.matrix
+NMDS_plot(my.data.22.vc.matrix)
+adonis_perm(my.data.22.vc.matrix)
+```
+
+
+
+
+```{r}
+#VCs- day 26 
+my.data.26.vc.matrix
+NMDS_plot(my.data.26.vc.matrix)
+adonis_perm(my.data.26.vc.matrix)
+```
+
+```{r}
+#VCs- day 39
+my.data.39.vc.matrix
+NMDS_plot(my.data.39.vc.matrix)
+adonis_perm(my.data.39.vc.matrix)
+```
+
+```{r}
+jaccard_uc <- vegdist(my.data.UC.matrix, method ="jaccard",binary=TRUE, diag=FALSE, upper=FALSE, na.rm = TRUE,)
+jaccard_healthy <-vegdist(my.data.HP.matrix, method ="jaccard",binary=TRUE, diag=FALSE, upper=FALSE, na.rm = TRUE,)
+
+write.csv(as.matrix(jaccard_uc), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/diversity/jaccard/uc_jaccard_vc.csv")
+
+write.csv(as.matrix(jaccard_healthy), "/Users/anshul.sinha/Desktop/Sequencing_analyses/phage_metagenomics_rainin_fall_2018/re-analyses_manuscript_data/diversity/jaccard/healthy_jaccard_vc.csv")
+
+```
+
+
+```{r}
+
+#HP pre-post Jaccard VC NMDS
+
+my.data.healthy.pre.post_vc <- my.data.HP.matrix
+
+
+
+treatment=c(rep("colonization",6),rep("post gavage", 14) ,rep("stock",4)) 
+colors=c(rep("dark green",6),rep("orange",14), rep("blue",4))
+
+
+treatment.df.healthy.pre.post_vc <-data.frame(treatment=c(rep("colonization",6),rep("post gavage",14),rep ("stock",4)), my.data.healthy.pre.post_vc)
+
+treatment.df.healthy.pre.post_vc
+
+my.matrix.healthy.pre.post_vc <- as.matrix(my.data.healthy.pre.post_vc)
+jaccard.distance.healthy.pre.post_vc <-vegdist(my.matrix.healthy.pre.post_vc, method = "jaccard", binary = TRUE, diag=FALSE, upper=FALSE, na.rm=FALSE,)
+
+
+NMDS.healthy.jaccard.pre.post_vc <- metaMDS(jaccard.distance.healthy.pre.post_vc, k=2)
+
+
+ordiplot(NMDS.healthy.jaccard.pre.post_vc,type="n", cex.axis = 2)
+
+
+
+points(NMDS.healthy.jaccard.pre.post_vc, col=colors, pch=16, cex = 2 )
+
+
+NMDS.healthy.jaccard.pre.post_vc
+
+```
+
+
+```{r}
+#UC pre-post Jaccard VC NMDS
+
+my.data.UC.pre.post_vc <- my.data.UC.matrix
+
+treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep("stock",5)) 
+colors=c(rep("dark green",8),rep("orange",15) ,rep("red",5))
+
+
+treatment.df.UC.pre.post_vc <-data.frame(treatment=c(rep("colonization",8),rep("post gavage", 15) ,rep ("stock",5)), my.data.UC.pre.post_vc)
+
+treatment.df.UC.pre.post_vc
+
+
+my.matrix.UC_vc.pre.post <- as.matrix(my.data.UC.pre.post_vc)
+jaccard.distance.UC_vc.pre.post <-vegdist(my.matrix.UC_vc.pre.post, method = "jaccard", binary = TRUE)
+
+NMDS.UC_vc.jaccard.pre.post <- metaMDS(jaccard.distance.UC_vc.pre.post, k=2)
+NMDS.UC_vc.jaccard.pre.post
+
+ordiplot(NMDS.UC_vc.jaccard.pre.post,type="n", cex.axis =2)
+
+points(NMDS.UC_vc.jaccard.pre.post, col=colors, pch=16, cex= 3 )
+```
+
+
+
