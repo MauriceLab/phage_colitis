@@ -1,0 +1,1832 @@
+---
+title: "Fall 2018- experiment 16S analyses"
+author: "Anshul Sinha"
+date: "12/14/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages('outliers')
+install.packages('GAD')
+```
+
+
+
+```{r}
+R.version.string
+```
+
+
+
+```{r}
+#Libraries 
+
+library("phyloseq")
+library("RColorBrewer")
+library("data.table")
+library(vegan)
+library(cowplot)
+library(gridExtra)
+library("ape")
+library("biomformat")
+library("dplyr")
+library(vegan)
+library("tidyverse")
+library(qiime2R)
+library(rbiom)
+library(corncob)
+library(stats)
+library(nlme)
+library(tidyverse)
+library(ggplot2)
+library(compositions)
+library(outliers)
+library(GAD)
+
+```
+
+
+```{r}
+#Importing the qza artifacts using read_qza and cleaning up taxonomy matrix for experiments 1 and 2
+
+
+setwd('/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/exported_qiime_artifacts/qza/expt1_2')
+tmp <- tempdir()
+features_expt1_2 <-read_qza('table-pooled-trimmed-f2.qza', tmp=tmp)$data
+ taxonomy_expt1_2 <-read_qza('taxonomy-trimmed.qza', tmp=tmp)$data
+ taxonomy_expt1_2 <-parse_taxonomy(taxonomy_expt1_2)
+ taxonomy_expt1_2 <-as.matrix(taxonomy_expt1_2)
+ tree_expt1_2 <-read_qza('rooted-tree-trimmed-pooled.qza', tmp=tmp)$data
+ 
+
+ metadata_expt_1_2 <- read.table('rainin_metadata_file_pooled_2019.tsv', header = TRUE)
+ metadata_expt_1_2
+ 
+ #same as above but for experiment 3 (HK ctrl experiment)
+ 
+ setwd('/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/exported_qiime_artifacts/qza/expt3')
+ 
+ tmp <- tempdir()
+features_expt3 <-read_qza('table_ctrl_exptf2.qza', tmp=tmp)$data
+ taxonomy_expt3 <-read_qza('taxonomy.qza', tmp=tmp)$data
+ taxonomy_expt3 <-parse_taxonomy(taxonomy_expt3)
+ taxonomy_expt3 <-as.matrix(taxonomy_expt3)
+ tree_expt3 <-read_qza('rooted-tree-trimmed_ctrl_expt.qza', tmp=tmp)$data
+ 
+
+metadata_expt3 <- read_csv('metadata_ctrl_experiment.csv')
+metadata_expt3
+
+
+ #same as above but for experiment with single dose of VLPs (with HB and UCB HMA)
+
+ setwd('/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/exported_qiime_artifacts/qza/ali_expt')
+
+
+ tmp <- tempdir()
+features_expt4 <-read_qza('table-f2.qza', tmp=tmp)$data
+ taxonomy_expt4 <-read_qza('taxonomy.qza', tmp=tmp)$data
+ taxonomy_expt4 <-parse_taxonomy(taxonomy_expt4)
+ taxonomy_expt4 <-as.matrix(taxonomy_expt4)
+ tree_expt4 <-read_qza('rooted-tree-trimmed.qza', tmp=tmp)$data
+ 
+
+metadata_expt4 <- read_csv('rainin_metadata_ali_2018.csv')
+metadata_expt4
+
+
+
+ 
+```
+
+```{r}
+
+#building a phlyoseq object- experiment 1 and 2
+
+my_otu_expt1_2 <- otu_table(features_expt1_2, taxa_are_rows = T)
+my_tree_expt1_2 <- phy_tree(tree_expt1_2)
+my_taxa_expt1_2 <- tax_table(taxonomy_expt1_2)
+my_meta_expt1_2 <- sample_data(metadata_expt_1_2)
+sample_names(my_meta_expt1_2) <- metadata_expt_1_2$sampleid
+ps2_expt1_2 <- phyloseq(my_otu_expt1_2, my_tree_expt1_2, my_taxa_expt1_2, my_meta_expt1_2)
+
+#Same as above but for experiment 3 
+
+my_otu_expt3 <- otu_table(features_expt3, taxa_are_rows = T)
+my_tree_expt3 <- phy_tree(tree_expt3)
+my_taxa_expt3 <- tax_table(taxonomy_expt3)
+my_meta_expt3 <- sample_data(metadata_expt3)
+sample_names(my_meta_expt3) <- metadata_expt3$sampleid
+ps2_expt3 <- phyloseq(my_otu_expt3, my_tree_expt3, my_taxa_expt3, my_meta_expt3)
+
+
+#Same as above but for experiment 4
+
+my_otu_expt4 <- otu_table(features_expt4, taxa_are_rows = T)
+my_tree_expt4 <- phy_tree(tree_expt4)
+my_taxa_expt4 <- tax_table(taxonomy_expt4)
+my_meta_expt4 <- sample_data(metadata_expt4)
+sample_names(my_meta_expt4) <- metadata_expt4$sampleid
+ps2_expt4 <- phyloseq(my_otu_expt4, my_tree_expt4, my_taxa_expt4, my_meta_expt4)
+
+
+
+```
+
+
+```{r}
+#subset by experiment 
+
+expt1 <- subset_samples(ps2_expt1_2, Experiment == '1' & !Treatment == 'inoculum')
+expt1
+
+expt2 <- subset_samples(ps2_expt1_2, Experiment == '2')
+expt2
+
+
+expt1_2 <- subset_samples(ps2_expt1_2, !Treatment == 'inoculum')
+
+expt3 <- subset_samples(ps2_expt3, mouse_experiment == 'yes')
+expt3
+
+#expt 4- all samples 
+expt4 <- ps2_expt4
+
+
+#expt 4- just post colonization samples 
+expt4_post_col <- subset_samples(expt4, post_col == 'yes')
+
+
+
+#expt 4- just samples given UC bacteria - testing effects of healthy VLPs with this bacterial community 
+
+expt4_UCB <- subset_samples(expt4, bac_treatment == 'UC')
+
+#expt 4 - just samples given 'healthy bacteria' testing effects of healthy VLPs with this bacterial community 
+
+expt4_HB <- subset_samples(expt4, bac_treatment == 'Healthy')
+
+
+#same as above, except using only post_col samples 
+
+expt4_UCB_pc <- subset_samples(expt4_post_col, bac_treatment == 'UC')
+
+#expt 4 - just samples given 'healthy bacteria' testing effects of healthy VLPs with this bacterial community 
+
+expt4_HB_pc <- subset_samples(expt4_post_col, bac_treatment == 'Healthy')
+
+
+
+
+#subset expts by time period 
+
+expt1_colonization <- subset_samples(expt1, Period == 'Colonization')
+expt2_colonization <- subset_samples(expt2, Period == 'Colonization')
+expt3_colonization <- subset_samples(expt3, Period == 'Colonization')
+
+
+expt1_gavage <- subset_samples(expt1, Period == 'gavage')
+expt2_gavage <- subset_samples(expt2, Period == 'gavage')
+expt3_gavage <- subset_samples(expt3, Period == 'gavage')
+expt4_UCB_pc_gav <- subset_samples(expt4_UCB_pc, Period == 'Gavage')
+expt4_HB_pc_gav <- subset_samples(expt4_HB_pc, Period == 'Gavage')
+
+expt1_dss <- subset_samples(expt1, Period == 'DSS+washout')
+expt2_dss <- subset_samples(expt2, Period == 'DSS+washout')
+expt3_dss <- subset_samples(expt3, Period == 'DSS+washout')
+expt4_UCB_pc_dss <- subset_samples(expt4_UCB_pc, Period == 'DSS+Washout')
+expt4_HB_pc_gav_dss <- subset_samples(expt4_HB_pc, Period == 'DSS+Washout')
+
+#Subset by treatment group
+
+expt1_UCP <- subset_samples(expt1, Treatment == 'UCP')
+expt1_HP <- subset_samples(expt1, Treatment == 'HP')
+expt1_PBS <- subset_samples(expt1, Treatment == 'PBS')
+
+expt2_UCP <- subset_samples(expt2, Treatment == 'UCP')
+expt2_HP <- subset_samples(expt2, Treatment == 'HP')
+expt2_PBS <- subset_samples(expt2, Treatment == 'PBS')
+
+
+expt3_UCP_no_DSS <- subset_samples(expt3, Treatment == 'UCP_no_DSS')
+expt3_UCP_DSS <- subset_samples(expt3, Treatment == 'UCP_DSS')
+expt3_HK_UCP_DSS <- subset_samples(expt3, Treatment == 'HK_UCP_DSS')
+
+#by day -expt 1 
+
+expt1_day_39 <- subset_samples(expt1, Date == '39')
+expt1_day_37 <- subset_samples(expt1, Date == '37')
+expt1_day_35 <- subset_samples(expt1, Date == '35')
+expt1_day_33 <- subset_samples(expt1, Date == '33')
+expt1_day_29 <- subset_samples(expt1, Date == '29')
+expt1_day_26 <- subset_samples(expt1, Date == '26')
+expt1_day_22 <- subset_samples(expt1, Date == '22')
+expt1_day_21 <- subset_samples(expt1, Date == '21')
+expt1_day_14 <- subset_samples(expt1, Date == '14')
+expt1_day_7 <- subset_samples(expt1, Date == '7')
+
+#by day -expt 2 
+
+expt2_day_39 <- subset_samples(expt2, Date == '39')
+expt2_day_37 <- subset_samples(expt2, Date == '37')
+expt2_day_35 <- subset_samples(expt2, Date == '35')
+expt2_day_33 <- subset_samples(expt2, Date == '33')
+expt2_day_29 <- subset_samples(expt2, Date == '29')
+expt2_day_27 <- subset_samples(expt2, Date == '27')
+expt2_day_23 <- subset_samples(expt2, Date == '23')
+expt2_day_21 <- subset_samples(expt2, Date == '21')
+expt2_day_20 <- subset_samples(expt2, Date == '20')
+expt2_day_14 <- subset_samples(expt2, Date == '14')
+expt2_day_7 <- subset_samples(expt2, Date == '7')
+
+#by day -expt 1 and 2  
+
+expt1_2_day_39 <- subset_samples(expt1_2, Date == '39')
+expt1_2_day_37 <- subset_samples(expt1_2, Date == '37')
+expt1_2_day_35 <- subset_samples(expt1_2, Date == '35')
+expt1_2_day_33 <- subset_samples(expt1_2, Date == '33')
+
+
+#by day -expt 3
+
+expt3_day_39 <- subset_samples(expt3, Date == '39')
+expt3_day_37 <- subset_samples(expt3, Date == '37')
+expt3_day_35 <- subset_samples(expt3, Date == '35')
+expt3_day_33 <- subset_samples(expt3, Date == '33')
+expt3_day_29 <- subset_samples(expt3, Date == '29')
+expt3_day_27 <- subset_samples(expt3, Date == '27')
+expt3_day_23 <- subset_samples(expt3, Date == '23')
+expt3_day_21 <- subset_samples(expt3, Date == '21')
+expt3_day_20 <- subset_samples(expt3, Date == '20')
+expt3_day_14 <- subset_samples(expt3, Date == '14')
+expt3_day_7 <- subset_samples(expt3, Date == '7')
+
+
+#by day -expt 4 - 
+expt4_day_41 <-  subset_samples(expt4, Date == '41')
+expt4_day_37 <- subset_samples(expt4, Date == '37')
+expt4_day_34 <-  subset_samples(expt4, Date == '34')
+expt4_day_30 <- subset_samples(expt4, Date == '30')
+expt4_day_29 <- subset_samples(expt4, Date == '29')
+expt4_day_22 <- subset_samples(expt4, Date == '22')
+expt4_day_21 <- subset_samples(expt4, Date == '21')
+expt4_day_14 <- subset_samples(expt4, Date == '14')
+expt4_day_7 <- subset_samples(expt4, Date == '7')
+
+#by day -expt 4 -UCB 
+
+expt4_UCB_pc_day_41 <-  subset_samples(expt4_UCB_pc, Date == '41')
+expt4_UCB_pc_day_37 <- subset_samples(expt4_UCB_pc, Date == '37')
+expt4_UCB_pc_day_34 <-  subset_samples(expt4_UCB_pc, Date == '34')
+expt4_UCB_pc_day_30 <- subset_samples(expt4_UCB_pc, Date == '30')
+expt4_UCB_pc_day_29 <- subset_samples(expt4_UCB_pc, Date == '29')
+expt4_UCB_pc_day_22 <- subset_samples(expt4_UCB_pc, Date == '22')
+
+
+
+#by day -expt 4 -HB 
+
+expt4_HB_pc_day_41 <-  subset_samples(expt4_HB_pc, Date == '41')
+expt4_HB_pc_day_37 <- subset_samples(expt4_HB_pc, Date == '37')
+expt4_HB_pc_day_34 <-  subset_samples(expt4_HB_pc, Date == '34')
+expt4_HB_pc_day_30 <- subset_samples(expt4_HB_pc, Date == '30')
+expt4_HB_pc_day_29 <- subset_samples(expt4_HB_pc, Date == '29')
+expt4_HB_pc_day_22 <- subset_samples(expt4_HB_pc, Date == '22')
+
+
+
+
+
+#Subsetting entire experiment by time period 
+
+expt1_UCPcolonization <- subset_samples(expt1_UCP, Period == 'Colonization')
+expt1_HPcolonization <- subset_samples(expt1_HP, Period == 'Colonization')
+expt1_PBScolonization <- subset_samples(expt1_PBS, Period == 'Colonization')
+
+
+expt2_UCPcolonization <- subset_samples(expt2_UCP, Period == 'Colonization')
+expt2_HPcolonization <- subset_samples(expt2_HP, Period == 'Colonization')
+expt2_PBScolonization <- subset_samples(expt2_PBS, Period == 'Colonization')
+
+
+expt3_UCP_no_DSS_colonization <- subset_samples(expt3_UCP_no_DSS, Period == 'Colonization')
+expt3_UCP_DSS_colonization <- subset_samples(expt3_UCP_DSS, Period == 'Colonization')
+expt3_HK_UCP_DSS_colonization <- subset_samples(expt3_HK_UCP_DSS, Period == 'Colonization')
+
+
+
+expt1_UCP_postg <- subset_samples(expt1_UCP, Post.Gavage == 'yes')
+expt1_HP_postg <- subset_samples(expt1_HP,  Post.Gavage == 'yes')
+expt1_PBSpostg <- subset_samples(expt1_PBS,  Post.Gavage == 'yes')
+
+expt2_UCP_postg <- subset_samples(expt2_UCP, Post.Gavage == 'yes')
+expt2_HP_postg <- subset_samples(expt2_HP,  Post.Gavage == 'yes')
+expt2_PBSpostg <- subset_samples(expt2_PBS,  Post.Gavage == 'yes')
+
+
+expt3_UCP_noDSS_postg <- subset_samples(expt3_UCP_no_DSS, Post.Gavage == 'yes')
+expt3_UCP_DSS_postg <- subset_samples(expt3_UCP_DSS,  Post.Gavage == 'yes')
+expt3_HK_UCP_DSS_postg <- subset_samples(expt3_HK_UCP_DSS,  Post.Gavage == 'yes')
+
+
+#Subsetting by cage 
+
+expt1_cg1_1 <- subset_samples(expt1, Cage == '1-1expt1')
+expt1_cg1_2 <-  subset_samples(expt1, Cage == '1-2expt1') 
+expt1_cg1_3 <-  subset_samples(expt1, Cage == '1-3expt1') 
+
+expt1_cg2_1 <- subset_samples(expt1, Cage == '2-1expt1')
+expt1_cg2_2 <-  subset_samples(expt1, Cage == '2-2expt1') 
+expt1_cg2_3 <-  subset_samples(expt1, Cage == '2-3expt1') 
+
+expt1_cg3_1 <- subset_samples(expt1, Cage == '3-1expt1')
+expt1_cg3_2 <-  subset_samples(expt1, Cage == '3-2expt1') 
+expt1_cg3_3 <-  subset_samples(expt1, Cage == '3-3expt1') 
+
+
+
+
+
+#Subsetting entire experiment by time period 
+
+expt1_colonization <- subset_samples(expt1, Period == 'Colonization')
+expt1_gavage <- subset_samples(expt1, Period == 'gavage')
+expt1_dss <- subset_samples(expt1, Period == 'DSS+washout')
+
+expt2_colonization <- subset_samples(expt2, Period == 'Colonization')
+expt2_gavage <- subset_samples(expt2, Period == 'gavage')
+expt2_dss <- subset_samples(expt2, Period == 'DSS+washout')
+
+expt3_colonization <- subset_samples(expt3, Period == 'Colonization')
+expt3_gavage <- subset_samples(expt3, Period == 'gavage')
+expt3_dss <- subset_samples(expt3, Period == 'DSS+washout')
+
+
+```
+```{r}
+
+#getting rarefied phyloseq objects based on the experiment  - # rarefying to 95% of min sample depth 
+
+expt1.rar <- rarefy_even_depth(expt1, rngseed=1, sample.size=0.95*min(sample_sums(expt1)), replace=F)
+
+expt2.rar <-rarefy_even_depth(expt2, rngseed=1, sample.size=0.95*min(sample_sums(expt2)), replace=F)
+
+expt3.rar <- rarefy_even_depth(expt3, rngseed=1, sample.size=0.95*min(sample_sums(expt3)), replace=F)
+
+expt4.rar <- rarefy_even_depth(expt4, rngseed=1, sample.size=0.95*min(sample_sums(expt4)), replace=F)
+
+
+expt1_2.rar  <- rarefy_even_depth(expt1_2, rngseed=1, sample.size=0.95*min(sample_sums(expt1_2)), replace=F)
+
+#expt 4- just post colonization samples 
+expt4_post_col.rar <- subset_samples(expt4.rar, post_col == 'yes')
+
+
+
+
+#expt 4- just samples given UC bacteria - testing effects of healthy VLPs with this bacterial community 
+
+expt4_UCB.rar <- subset_samples(expt4.rar, bac_treatment == 'UC')
+
+#expt 4 - just samples given 'healthy bacteria' testing effects of healthy VLPs with this bacterial community 
+
+expt4_HB.rar <- subset_samples(expt4.rar, bac_treatment == 'Healthy')
+
+
+#same as above, except using only post_col samples 
+
+expt4_UCB_pc.rar <- subset_samples(expt4_post_col.rar, bac_treatment == 'UC')
+
+#expt 4 - just samples given 'healthy bacteria' testing effects of healthy VLPs with this bacterial community 
+
+expt4_HB_pc.rar <- subset_samples(expt4_post_col.rar, bac_treatment == 'Healthy')
+
+
+
+
+#now subsetting rarefied ps objects - period
+
+
+expt1_colonization.rar <- subset_samples(expt1.rar, Period == 'Colonization')
+expt2_colonization.rar <- subset_samples(expt2.rar, Period == 'Colonization')
+expt3_colonization.rar <- subset_samples(expt3.rar, Period == 'Colonization')
+
+
+expt1_gavage.rar <- subset_samples(expt1.rar, Period == 'gavage')
+expt2_gavage.rar <- subset_samples(expt2.rar, Period == 'gavage')
+expt3_gavage.rar <- subset_samples(expt3.rar, Period == 'gavage')
+expt4_UCB_pc_gav.rar <- subset_samples(expt4_UCB_pc.rar, Period == 'Gavage')
+expt4_HB_pc_gav.rar <- subset_samples(expt4_HB_pc.rar, Period == 'Gavage')
+
+
+
+expt1_dss.rar <- subset_samples(expt1.rar, Period == 'DSS+washout')
+expt2_dss.rar <- subset_samples(expt2.rar, Period == 'DSS+washout')
+expt3_dss.rar <- subset_samples(expt3.rar, Period == 'DSS+washout')
+expt4_UCB_pc_dss.rar <- subset_samples(expt4_UCB_pc.rar, Period == 'DSS+Washout')
+expt4_HB_pc_gav_dss.rar <- subset_samples(expt4_HB_pc.rar, Period == 'DSS+Washout')
+
+
+#Subset by treatment group
+
+expt1_UCP.rar <- subset_samples(expt1.rar, Treatment == 'UCP')
+expt1_HP.rar <- subset_samples(expt1.rar, Treatment == 'HP')
+expt1_PBS.rar <- subset_samples(expt1.rar, Treatment == 'PBS')
+
+expt2_UCP.rar <- subset_samples(expt2.rar, Treatment == 'UCP')
+expt2_HP.rar <- subset_samples(expt2.rar, Treatment == 'HP')
+expt2_PBS.rar <- subset_samples(expt2.rar, Treatment == 'PBS')
+
+
+expt3_UCP_no_DSS.rar <- subset_samples(expt3.rar, Treatment == 'UCP_no_DSS')
+expt3_UCP_DSS.rar <- subset_samples(expt3.rar, Treatment == 'UCP_DSS')
+expt3_HK_UCP_DSS.rar <- subset_samples(expt3.rar, Treatment == 'HK_UCP_DSS')
+
+
+#by day -expt 1 
+
+expt1_day_39.rar <- subset_samples(expt1.rar, Date == '39')
+expt1_day_37.rar <- subset_samples(expt1.rar, Date == '37')
+expt1_day_35.rar <- subset_samples(expt1.rar, Date == '35')
+expt1_day_33.rar <- subset_samples(expt1.rar, Date == '33')
+expt1_day_29.rar <- subset_samples(expt1.rar, Date == '29')
+expt1_day_26.rar <- subset_samples(expt1.rar, Date == '26')
+expt1_day_22.rar <- subset_samples(expt1.rar, Date == '22')
+expt1_day_21.rar <- subset_samples(expt1.rar, Date == '21')
+expt1_day_14.rar <- subset_samples(expt1.rar, Date == '14')
+expt1_day_7.rar <- subset_samples(expt1.rar, Date == '7')
+
+#by day -expt 2 
+
+expt2_day_39.rar <- subset_samples(expt2.rar, Date == '39')
+expt2_day_37.rar <- subset_samples(expt2.rar, Date == '37')
+expt2_day_35.rar <- subset_samples(expt2.rar, Date == '35')
+expt2_day_33.rar <- subset_samples(expt2.rar, Date == '33')
+expt2_day_29.rar <- subset_samples(expt2.rar, Date == '29')
+expt2_day_27.rar <- subset_samples(expt2.rar, Date == '27')
+expt2_day_23.rar <- subset_samples(expt2.rar, Date == '23')
+expt2_day_21.rar <- subset_samples(expt2.rar, Date == '21')
+expt2_day_20.rar <- subset_samples(expt2.rar, Date == '20')
+expt2_day_14.rar <- subset_samples(expt2.rar, Date == '14')
+expt2_day_7.rar <- subset_samples(expt2.rar, Date == '7')
+
+#by day -expt 1 and 2  
+
+expt1_2_day_39.rar <- subset_samples(expt1_2.rar, Date == '39')
+expt1_2_day_37.rar <- subset_samples(expt1_2.rar, Date == '37')
+expt1_2_day_35.rar <- subset_samples(expt1_2.rar, Date == '35')
+expt1_2_day_33.rar <- subset_samples(expt1_2.rar, Date == '33')
+
+
+
+#by day -expt 3
+
+expt3_day_39.rar <- subset_samples(expt3.rar, Date == '39')
+expt3_day_37.rar <- subset_samples(expt3.rar, Date == '37')
+expt3_day_35.rar <- subset_samples(expt3.rar, Date == '35')
+expt3_day_33.rar <- subset_samples(expt3.rar, Date == '33')
+expt3_day_29.rar <- subset_samples(expt3.rar, Date == '29')
+expt3_day_27.rar <- subset_samples(expt3.rar, Date == '27')
+expt3_day_23.rar <- subset_samples(expt3.rar, Date == '23')
+expt3_day_21.rar <- subset_samples(expt3.rar, Date == '21')
+expt3_day_20.rar <- subset_samples(expt3.rar, Date == '20')
+expt3_day_14.rar <- subset_samples(expt3.rar, Date == '14')
+expt3_day_7.rar <- subset_samples(expt3.rar, Date == '7')
+
+
+
+#by day -expt 4 - 
+expt4_day_41.rar <-  subset_samples(expt4.rar, Date == '41')
+expt4_day_37.rar <- subset_samples(expt4.rar, Date == '37')
+expt4_day_34.rar <-  subset_samples(expt4.rar, Date == '34')
+expt4_day_30.rar <- subset_samples(expt4.rar, Date == '30')
+expt4_day_29.rar <- subset_samples(expt4.rar, Date == '29')
+expt4_day_22.rar <- subset_samples(expt4.rar, Date == '22')
+expt4_day_21.rar <- subset_samples(expt4.rar, Date == '21')
+expt4_day_14.rar <- subset_samples(expt4.rar, Date == '14')
+expt4_day_7.rar <- subset_samples(expt4.rar, Date == '7')
+
+#by day -expt 4 -UCB 
+
+expt4_UCB_pc_day_41.rar <-  subset_samples(expt4_UCB_pc.rar, Date == '41')
+expt4_UCB_pc_day_37.rar <- subset_samples(expt4_UCB_pc.rar, Date == '37')
+expt4_UCB_pc_day_34.rar <-  subset_samples(expt4_UCB_pc.rar, Date == '34')
+expt4_UCB_pc_day_30.rar <- subset_samples(expt4_UCB_pc.rar, Date == '30')
+expt4_UCB_pc_day_29.rar <- subset_samples(expt4_UCB_pc.rar, Date == '29')
+expt4_UCB_pc_day_22.rar <- subset_samples(expt4_UCB_pc.rar, Date == '22')
+
+
+
+#by day -expt 4 -HB 
+
+expt4_HB_pc_day_41.rar <-  subset_samples(expt4_HB_pc.rar, Date == '41')
+expt4_HB_pc_day_37.rar <- subset_samples(expt4_HB_pc.rar, Date == '37')
+expt4_HB_pc_day_34.rar <-  subset_samples(expt4_HB_pc.rar, Date == '34')
+expt4_HB_pc_day_30.rar <- subset_samples(expt4_HB_pc.rar, Date == '30')
+expt4_HB_pc_day_29.rar <- subset_samples(expt4_HB_pc.rar, Date == '29')
+expt4_HB_pc_day_22.rar <- subset_samples(expt4_HB_pc.rar, Date == '22')
+
+
+
+#Subsetting by cage expt1 
+
+expt1_cg1_1.rar <- subset_samples(expt1.rar, Cage == '1-1expt1')
+expt1_cg1_2.rar <-  subset_samples(expt1.rar, Cage == '1-2expt1') 
+expt1_cg1_3.rar <-  subset_samples(expt1.rar, Cage == '1-3expt1') 
+
+expt1_cg2_1.rar <- subset_samples(expt1.rar, Cage == '2-1expt1')
+expt1_cg2_2.rar <-  subset_samples(expt1.rar, Cage == '2-2expt1') 
+expt1_cg2_3.rar <-  subset_samples(expt1.rar, Cage == '2-3expt1') 
+
+expt1_cg3_1.rar <- subset_samples(expt1.rar, Cage == '3-1expt1')
+expt1_cg3_2.rar <-  subset_samples(expt1.rar, Cage == '3-2expt1') 
+expt1_cg3_3.rar <-  subset_samples(expt1.rar, Cage == '3-3expt1') 
+
+#Subsetting by cage expt2 
+
+expt2_cg1_1.rar <- subset_samples(expt2.rar, Cage == '1-1-expt2')
+expt2_cg1_2.rar <-  subset_samples(expt2.rar, Cage == '1-2-expt2') 
+expt2_cg1_3.rar <-  subset_samples(expt2.rar, Cage == '1-3-expt2') 
+
+expt2_cg2_1.rar <- subset_samples(expt2.rar, Cage == '2-1-expt2')
+expt2_cg2_2.rar <-  subset_samples(expt2.rar, Cage == '2-2-expt2') 
+expt2_cg2_3.rar <-  subset_samples(expt2.rar, Cage == '2-3-expt2') 
+
+expt2_cg3_1.rar <- subset_samples(expt2.rar, Cage == '3-1-expt2')
+expt2_cg3_2.rar <-  subset_samples(expt2.rar, Cage == '3-2-expt2') 
+expt2_cg3_3.rar <-  subset_samples(expt2.rar, Cage == '3-3-expt2') 
+
+#Subsetting by cage expt3 
+
+expt3_cg1_1.rar <- subset_samples(expt3.rar, Cage == '1-1')
+expt3_cg1_2.rar <-  subset_samples(expt3.rar, Cage == '1-2') 
+expt3_cg1_3.rar <-  subset_samples(expt3.rar, Cage == '1-3') 
+
+expt3_cg2_1.rar <- subset_samples(expt3.rar, Cage == '2-1')
+expt3_cg2_2.rar <-  subset_samples(expt3.rar, Cage == '2-2') 
+expt3_cg2_3.rar <-  subset_samples(expt3.rar, Cage == '2-3') 
+
+expt3_cg4_1.rar <- subset_samples(expt3.rar, Cage == '4-1')
+expt3_cg4_2.rar <-  subset_samples(expt3.rar, Cage == '4-2') 
+expt3_cg4_3.rar <-  subset_samples(expt3.rar, Cage == '4-3') 
+
+
+
+
+#Subsetting entire experiment by time period 
+
+expt1_UCPcolonization.rar <- subset_samples(expt1_UCP.rar, Period == 'Colonization')
+expt1_HPcolonization.rar <- subset_samples(expt1_HP.rar, Period == 'Colonization')
+expt1_PBScolonization.rar <- subset_samples(expt1_PBS.rar, Period == 'Colonization')
+
+
+expt2_UCPcolonization.rar <- subset_samples(expt2_UCP.rar, Period == 'Colonization')
+expt2_HPcolonization.rar <- subset_samples(expt2_HP.rar, Period == 'Colonization')
+expt2_PBScolonization.rar <- subset_samples(expt2_PBS.rar, Period == 'Colonization')
+
+
+expt3_UCP_no_DSS_colonization.rar <- subset_samples(expt3_UCP_no_DSS.rar, Period == 'Colonization')
+expt3_UCP_DSS_colonization.rar <- subset_samples(expt3_UCP_DSS.rar, Period == 'Colonization')
+expt3_HK_UCP_DSS_colonization.rar <- subset_samples(expt3_HK_UCP_DSS.rar, Period == 'Colonization')
+
+
+
+expt1_UCP_postg.rar <- subset_samples(expt1_UCP.rar, Post.Gavage == 'yes')
+expt1_HP_postg.rar <- subset_samples(expt1_HP.rar,  Post.Gavage == 'yes')
+expt1_PBSpostg.rar <- subset_samples(expt1_PBS.rar,  Post.Gavage == 'yes')
+
+expt2_UCP_postg.rar <- subset_samples(expt2_UCP.rar, Post.Gavage == 'yes')
+expt2_HP_postg.rar <- subset_samples(expt2_HP.rar,  Post.Gavage == 'yes')
+expt2_PBSpostg.rar <- subset_samples(expt2_PBS.rar,  Post.Gavage == 'yes')
+
+
+expt3_UCP_noDSS_postg.rar <- subset_samples(expt3_UCP_no_DSS.rar, Post.Gavage == 'yes')
+expt3_UCP_DSS_postg.rar <- subset_samples(expt3_UCP_DSS.rar,  Post.Gavage == 'yes')
+expt3_HK_UCP_DSS_postg.rar <- subset_samples(expt3_HK_UCP_DSS.rar,  Post.Gavage == 'yes')
+
+
+
+
+
+
+
+```
+
+
+
+
+
+```{r}
+#Taxa Bar Plot
+
+
+#Agglomerating taxa of the same type (phyla)
+Expt1Phyl <- tax_glom(expt1, "Phylum")
+
+#transforming sample counts to get RA
+Expt1PhylRA <- transform_sample_counts(Expt1Phyl, function(x) x / sum(x) )
+Expt1PhylRA
+
+df <- Expt1PhylRA %>% psmelt() 
+
+aggregate(Abundance ~ Date + Treatment + Phylum, data = df, mean) %>%
+
+ggplot(aes(y = Abundance, x = Date)) +
+  geom_bar(aes(fill = Phylum), stat='identity') + ylab("Relative Abundance") + scale_y_continuous(name = "Relative Abundance", breaks = c(0,0.5,1)) +
+  facet_grid(rows = vars(Treatment)) +theme(text = element_text(size = 14)) + theme_bw() + scale_fill_brewer(palette = "Accent")
+
+
+
+
+
+
+```
+
+
+```{r}
+
+#Creating a PERMANOVA function (code adapted from Taguer, 2021)
+
+#Using (rarefied) counts, rooted tree to create function for PERMANOVA of weighted UniFrac distances 
+#input is a phyloseq object 
+
+#use Permanova_treatment for expt1-3
+
+Permanova_treatment <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Treatment,
+       data = as(sample_data(subset_treat), "data.frame"))
+}
+
+
+#use Permanova_treatment_expt4_bac to test bacterial treatment effect in experiment 4
+
+Permanova_treatment_expt4_bac <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ bac_treatment,
+       data = as(sample_data(subset_treat), "data.frame"))
+}
+
+
+#use Permanova_treatment_expt4_phage to test phage treatment effect in experiment 4
+
+Permanova_treatment_expt4_phage <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ phage_treatment,
+       data = as(sample_data(subset_treat), "data.frame"))
+}
+
+
+
+Permanova_treatment_post_gavage <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Treatment*Post.Gavage,
+       data = as(sample_data(subset_treat), "data.frame"))
+}
+
+
+Permanova_treatment_post_dss <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Treatment*Post.DSS,
+       data = as(sample_data(subset_treat), "data.frame"))
+}
+
+Permanova_period <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Period,
+       data = as(sample_data(subset_treat), "data.frame"))
+  
+}
+
+
+Permanova_post_gavage <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Post.Gavage,
+       data = as(sample_data(subset_treat), "data.frame"))
+  
+}
+
+Permanova_post_dss <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Post.DSS,
+       data = as(sample_data(subset_treat), "data.frame"))
+  
+}
+
+
+
+
+Permanova_cage <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Cage,
+       data = as(sample_data(subset_treat), "data.frame"))
+  
+}
+
+Permanova_experiment <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Experiment,
+       data = as(sample_data(subset_treat), "data.frame"))
+  
+}
+
+
+
+Permanova_treatment_period <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  adonis(rbiom_weighted_u ~ Treatment*Period,
+       data = as(sample_data(subset_treat), "data.frame"))
+  
+}
+
+Permanova_treatment_cochrans <- function(subset_treat) {
+  counts = otu_table(subset_treat)
+  tree = phy_tree(subset_treat)
+  rbiom_weighted_u = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  model <- lm(rbiom_weighted_u ~ Treatment,  data = as(sample_data(subset_treat), "data.frame"))
+  C.test(model)
+}
+
+
+
+```
+
+
+
+
+
+```{r}
+
+PCoAWU_treat <- function(Treatment) {
+  counts = otu_table(Treatment)
+  tree = phy_tree(Treatment)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Treatment, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Treatment, pcoa.rlog, "samples", color="Treatment", title = "VLP Treatment" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_color_manual(values=c("#0000FF", "black", "#ff6961")) 
+}
+
+
+
+
+
+#Same as above, except using colours for the heat-killed experiment 
+
+PCoAWU_treat_hk <- function(Treatment) {
+  counts = otu_table(Treatment)
+  tree = phy_tree(Treatment)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Treatment, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Treatment, pcoa.rlog, "samples", color="Treatment", title = "VLP Treatment" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_color_manual(values=c("#228B22", "#E7D27C", "#ff6961")) 
+}
+
+
+
+#Same as above, except using colours for expt 4 (bac treatment)
+
+PCoAWU_treat_bac_treatment <- function(Treatment) {
+  counts = otu_table(Treatment)
+  tree = phy_tree(Treatment)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Treatment, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Treatment, pcoa.rlog, "samples", color="bac_treatment", title = "Bacterial Gavage" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_color_manual(values=c("#3549D2", "#FB0106")) 
+}
+
+
+#Same as above, except using colours for expt 4 (phage treatment- UCB)
+
+PCoAWU_treat_phage_treatment_UCB <- function(Treatment) {
+  counts = otu_table(Treatment)
+  tree = phy_tree(Treatment)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Treatment, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Treatment, pcoa.rlog, "samples", color="phage_treatment", title = "Phage Treatment" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_color_manual(values=c("#ff474c", "#8b0000")) 
+}
+
+
+
+PCoAWU_treat_phage_treatment_HB <- function(Treatment) {
+  counts = otu_table(Treatment)
+  tree = phy_tree(Treatment)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Treatment, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Treatment, pcoa.rlog, "samples", color="phage_treatment", title = "Phage Treatment" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_color_manual(values=c("#ADD8E6", "#3D426B")) 
+}
+
+
+PCoAWU_post_gavage <- function(Post_gavage) {
+  counts = otu_table(Post_gavage)
+  tree = phy_tree(Post_gavage)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Post_gavage, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Post_gavage, pcoa.rlog, "samples", color="Post.Gavage", title = "Post.Gavage" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_color_manual(values=c("#d1ddf1", "#feefc1", "#ff6961")) 
+}
+
+PCoAWU_period <- function(Period) {
+  counts = otu_table(Period)
+  tree = phy_tree(Period)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Period, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Period, pcoa.rlog, "samples", color="Period", title = "Period" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_color_manual(values=c("#d1ddf1", "#feefc1", "#ff6961")) 
+}
+
+PCoAWU_cage <- function(Cage) {
+  counts = otu_table(Cage)
+  tree = phy_tree(Cage)
+  rbiom_weighted.rlog = rbiom::unifrac(counts, weighted=TRUE, tree=tree)
+  pcoa.rlog = ordinate(Cage, method="PCoA", distance=rbiom_weighted.rlog)
+  plot_ordination(Cage, pcoa.rlog, "samples", color="Cage", title = "Cage" ) + 
+    geom_point(size=3) + theme_bw() +  theme(text = element_text(size = 12)) + 
+    scale_fill_brewer() 
+  
+}
+
+
+
+```
+
+```{r}
+
+#expt 1  - use rarefied counts 
+
+Permanova_treatment_period(expt1.rar)
+
+Permanova_treatment(expt1.rar)
+
+Permanova_treatment(expt1_colonization.rar)
+
+Permanova_treatment(expt1_gavage.rar)
+
+Permanova_treatment(expt1_dss.rar)
+
+
+
+Permanova_treatment(expt1_day_39.rar)
+Permanova_treatment(expt1_day_37.rar)
+Permanova_treatment(expt1_day_35.rar)
+Permanova_treatment(expt1_day_33.rar)
+Permanova_treatment(expt1_day_29.rar)
+Permanova_treatment(expt1_day_26.rar)
+Permanova_treatment(expt1_day_22.rar)
+Permanova_treatment(expt1_day_21.rar)
+Permanova_treatment(expt1_day_14.rar)
+Permanova_treatment(expt1_day_7.rar)
+
+
+
+
+```
+
+
+```{r}
+#expt 2  - use rarefied counts 
+
+Permanova_treatment_period(expt2.rar)
+
+Permanova_treatment(expt2.rar)
+
+Permanova_treatment(expt2_colonization.rar)
+
+Permanova_treatment(expt2_gavage.rar)
+
+Permanova_treatment(expt2_dss.rar)
+
+
+Permanova_treatment(expt2_day_39.rar)
+Permanova_treatment(expt2_day_37.rar)
+Permanova_treatment(expt2_day_35.rar)
+Permanova_treatment(expt2_day_33.rar)
+Permanova_treatment(expt2_day_29.rar)
+Permanova_treatment(expt2_day_27.rar)
+Permanova_treatment(expt2_day_23.rar)
+Permanova_treatment(expt2_day_21.rar)
+Permanova_treatment(expt2_day_20.rar)
+Permanova_treatment(expt2_day_14.rar)
+Permanova_treatment(expt2_day_7.rar)
+
+```
+
+```{r}
+Permanova_treatment(expt1_2_day_33.rar)
+Permanova_treatment(expt1_2_day_35.rar)
+Permanova_treatment(expt1_2_day_37.rar)
+Permanova_treatment(expt1_2_day_39.rar)
+
+
+```
+
+
+
+```{r}
+
+#expt 3  - use rarefied counts 
+
+
+Permanova_treatment_period(expt3.rar)
+
+Permanova_treatment(expt3.rar)
+
+Permanova_treatment(expt3_colonization.rar)
+
+Permanova_treatment(expt3_gavage.rar)
+
+Permanova_treatment(expt3_dss.rar)
+
+
+Permanova_treatment(expt3_day_39.rar)
+Permanova_treatment(expt3_day_37.rar)
+Permanova_treatment(expt3_day_35.rar)
+Permanova_treatment(expt3_day_33.rar)
+Permanova_treatment(expt3_day_29.rar)
+Permanova_treatment(expt3_day_27.rar)
+Permanova_treatment(expt3_day_23.rar)
+Permanova_treatment(expt3_day_21.rar)
+Permanova_treatment(expt3_day_20.rar)
+Permanova_treatment(expt3_day_14.rar)
+Permanova_treatment(expt3_day_7.rar)
+
+```
+
+
+```{r}
+#Permanova - comparing bacterial treatments
+Permanova_treatment_expt4_bac(expt4.rar)
+Permanova_treatment_expt4_bac(expt4_day_41.rar)
+Permanova_treatment_expt4_bac(expt4_day_37.rar)
+Permanova_treatment_expt4_bac(expt4_day_34.rar)
+Permanova_treatment_expt4_bac(expt4_day_30.rar)
+Permanova_treatment_expt4_bac(expt4_day_29.rar)
+Permanova_treatment_expt4_bac(expt4_day_22.rar)
+Permanova_treatment_expt4_bac(expt4_day_21.rar)
+Permanova_treatment_expt4_bac(expt4_day_14.rar)
+Permanova_treatment_expt4_bac(expt4_day_7.rar)
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+#expt 4  - use rarefied counts 
+#UCB mice 
+
+
+Permanova_treatment_expt4_phage(expt4_UCB_pc_gav.rar)
+Permanova_treatment_expt4_phage(expt4_UCB_pc_dss.rar)
+
+Permanova_treatment_expt4_phage(expt4_UCB_pc_day_41.rar)
+Permanova_treatment_expt4_phage(expt4_UCB_pc_day_37.rar)
+Permanova_treatment_expt4_phage(expt4_UCB_pc_day_34.rar)
+Permanova_treatment_expt4_phage(expt4_UCB_pc_day_30.rar)
+Permanova_treatment_expt4_phage(expt4_UCB_pc_day_29.rar)
+Permanova_treatment_expt4_phage(expt4_UCB_pc_day_22.rar)
+
+
+
+
+```
+
+
+```{r}
+
+#expt 4  - use rarefied counts 
+#UCB mice 
+PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_day_41.rar)
+PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_day_37.rar)
+PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_day_34.rar)
+PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_day_30.rar)
+PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_day_29.rar)
+PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_day_22.rar)
+
+
+```
+
+
+
+
+
+
+```{r}
+
+#expt 4  - use rarefied counts 
+#HB mice 
+Permanova_treatment_expt4_phage(expt4_HB_pc_gav.rar)
+Permanova_treatment_expt4_phage(expt4_HB_pc_gav_dss.rar)
+
+Permanova_treatment_expt4_phage(expt4_HB_pc_day_41.rar)
+Permanova_treatment_expt4_phage(expt4_HB_pc_day_37.rar)
+
+
+
+Permanova_treatment_expt4_phage(expt4_HB_pc_day_34.rar)
+Permanova_treatment_expt4_phage(expt4_HB_pc_day_30.rar)
+Permanova_treatment_expt4_phage(expt4_HB_pc_day_29.rar)
+Permanova_treatment_expt4_phage(expt4_HB_pc_day_22.rar)
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+PCoAWU_treat(expt1.rar)
+PCoAWU_treat(expt1_colonization.rar)
+PCoAWU_treat(expt1_gavage.rar)
+PCoAWU_treat(expt1_dss.rar)
+
+
+PCoAWU_treat(expt2.rar)
+PCoAWU_treat(expt2_colonization.rar)
+PCoAWU_treat(expt2_gavage.rar)
+PCoAWU_treat(expt2_dss.rar)
+
+PCoAWU_treat_hk(expt3.rar)
+PCoAWU_treat_hk(expt3_colonization.rar)
+PCoAWU_treat_hk(expt3_gavage.rar)
+PCoAWU_treat_hk(expt3_dss.rar)
+
+
+#PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_gav.rar)
+#PCoAWU_treat_phage_treatment_UCB(expt4_UCB_pc_dss.rar)
+#PCoAWU_treat_phage_treatment_HB(expt4_HB_pc_gav.rar)
+#PCoAWU_treat_phage_treatment_HB(expt4_HB_pc_gav_dss.rar)
+
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+PCoAWU_treat(expt1_day_21)
+
+PCoAWU_treat(expt1_day_39)
+PCoAWU_treat(expt1_day_35)
+
+
+```
+
+```{r}
+PCoAWU_treat_bac_treatment(expt4.rar)
+PCoAWU_treat_bac_treatment(expt4_day_22.rar)
+PCoAWU_treat_bac_treatment(expt4_day_29.rar)
+PCoAWU_treat_bac_treatment(expt4_day_41.rar)
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+#PCoA by VLP treatment group
+
+PCoAWU_treat(expt1)
+PCoAWU_treat(expt1_colonization)
+PCoAWU_treat(expt1_gavage)
+PCoAWU_treat(expt1_dss)
+
+
+
+
+PCoAWU_treat(expt2)
+PCoAWU_treat(expt2_colonization)
+PCoAWU_treat(expt2_gavage)
+PCoAWU_treat(expt2_dss)
+
+
+PCoAWU_treat_hk(expt3)
+PCoAWU_treat_hk(expt3_colonization)
+PCoAWU_treat_hk(expt3_gavage)
+PCoAWU_treat_hk(expt3_dss)
+
+
+
+
+```
+
+
+
+
+
+
+```{r}
+#PCoA by time period 
+
+
+
+PCoAWU_period(expt2_UCP.rar)
+PCoAWU_period(expt2_HP.rar)
+PCoAWU_period(expt2_PBS.rar)
+
+
+PCoAWU_period(expt3_UCP_no_DSS.rar)
+PCoAWU_period(expt3_UCP_DSS.rar)
+PCoAWU_period(expt3_HK_UCP_DSS.rar)
+
+
+
+
+
+```
+
+
+```{r}
+
+
+#PERMANOVA PERIOD BY CAGE -EXPT 1 
+
+
+Permanova_period(expt1_cg1_1.rar)
+Permanova_period(expt1_cg1_2.rar)
+Permanova_period(expt1_cg1_3.rar)
+
+Permanova_period(expt1_cg2_1.rar)
+Permanova_period(expt1_cg2_2.rar)
+Permanova_period(expt1_cg2_3.rar)
+
+
+Permanova_period(expt1_cg3_1.rar)
+Permanova_period(expt1_cg3_2.rar)
+Permanova_period(expt1_cg3_3.rar)
+
+
+#PERMANOVA PERIOD BY VLP TREATMENT  -EXPT 1 
+
+
+Permanova_period(expt1_UCP.rar)
+Permanova_period(expt1_HP.rar)
+Permanova_period(expt1_PBS.rar)
+
+#PCoA -EXPT 1 
+
+PCoAWU_period(expt1_UCP.rar)
+PCoAWU_period(expt1_HP.rar)
+PCoAWU_period(expt1_PBS.rar)
+
+
+
+```
+
+
+```{r}
+
+#PERMANOVA PERIOD BY CAGE -EXPT 2 
+
+
+Permanova_period(expt2_cg1_1.rar)
+Permanova_period(expt2_cg1_2.rar)
+Permanova_period(expt2_cg1_3.rar)
+
+Permanova_period(expt2_cg2_1.rar)
+Permanova_period(expt2_cg2_2.rar)
+Permanova_period(expt2_cg2_3.rar)
+
+
+Permanova_period(expt2_cg3_1.rar)
+Permanova_period(expt2_cg3_2.rar)
+Permanova_period(expt2_cg3_3.rar)
+
+
+#PERMANOVA PERIOD BY VLP TREATMENT  -EXPT 2
+
+
+Permanova_period(expt2_UCP.rar)
+Permanova_period(expt2_HP.rar)
+Permanova_period(expt2_PBS.rar)
+
+#PCoA -EXPT 2
+
+PCoAWU_period(expt2_UCP.rar)
+PCoAWU_period(expt2_HP.rar)
+PCoAWU_period(expt2_PBS.rar)
+
+
+```
+
+```{r}
+#PERMANOVA PERIOD BY CAGE -EXPT 3
+
+
+Permanova_period(expt3_cg1_1.rar)
+Permanova_period(expt3_cg1_2.rar)
+Permanova_period(expt3_cg1_3.rar)
+
+Permanova_period(expt3_cg2_1.rar)
+Permanova_period(expt3_cg2_2.rar)
+Permanova_period(expt3_cg2_3.rar)
+
+
+Permanova_period(expt3_cg4_1.rar)
+Permanova_period(expt3_cg4_2.rar)
+Permanova_period(expt3_cg4_3.rar)
+
+
+#PERMANOVA PERIOD BY VLP TREATMENT  -EXPT 2
+
+
+Permanova_period(expt3_UCP_no_DSS.rar)
+Permanova_period(expt3_UCP_DSS.rar)
+Permanova_period(expt3_HK_UCP_DSS.rar)
+
+
+#PCoA -EXPT 3
+
+PCoAWU_period(expt3_UCP_no_DSS.rar)
+PCoAWU_period(expt3_UCP_DSS.rar)
+PCoAWU_period(expt3_HK_UCP_DSS.rar)
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+#extracting metadata for just experiment 
+
+expt1_meta <- subset(metadata_expt_1_2, Experiment == '1' & !Treatment == 'inoculum')
+expt2_meta <- subset(metadata_expt_1_2, Experiment == '2')
+expt3_meta <- subset(metadata_expt3, mouse_experiment == 'yes')
+expt4_meta_post_col <- subset(metadata_expt4, post_col == 'yes')
+
+```
+
+
+```{r}
+#Function to get filtered feature table based on specific taxonomic level (for input for ANCOM)
+
+#Takes the phyloseq object that you want to use for filtering (ie - whole experiment, or just a specific time period/treatment), and a string indicating the taxonomic level of interest
+
+
+
+#IMPORTANT - TAX Glom needs to include NArm = FALSE. If this is not the case, then any species/ genera etc. with unknown taxonomy will be thrown out 
+#Ie- Escherichia-Shigella sp. would be thrown out of analyses bc it is unknown at the species level
+
+ft_tax_filter <- function(phylo, tax_level) { 
+  
+tax_filter <- tax_glom(phylo, tax_level, NArm = FALSE) 
+tax_filter_ft <- as(otu_table(tax_filter), "matrix")
+  
+  
+}
+
+
+```
+
+
+
+```{r}
+
+#Whole expt 1 filter 
+
+
+phylum_expt1_ft <- ft_tax_filter(expt1, "Phylum")
+genus_expt1_ft <-  ft_tax_filter(expt1, "Genus")
+species_expt1_ft <-  ft_tax_filter(expt1, "Species")
+
+
+
+#Whole expt 2 filter 
+
+phylum_expt2_ft <- ft_tax_filter(expt2, "Phylum")
+genus_expt2_ft <-  ft_tax_filter(expt2, "Genus")
+species_expt2_ft <-  ft_tax_filter(expt2, "Species")
+
+
+#Whole expt3 filte3
+
+
+phylum_expt3_ft <- ft_tax_filter(expt3, "Phylum")
+genus_expt3_ft <-  ft_tax_filter(expt3, "Genus")
+species_expt3_ft <-  ft_tax_filter(expt3, "Species")
+
+
+
+#Whole expt4 filter - using just post-colonization samples for ANCOM input since we know cages naming is consistent from this point on
+phylum_expt4_ft_pc <- ft_tax_filter(expt4_post_col, "Phylum")
+genus_expt4_ft_pc <-  ft_tax_filter(expt4_post_col, "Genus")
+species_expt4_ft_pc <-  ft_tax_filter(expt4_post_col, "Species")
+
+
+
+```
+
+
+
+
+
+```{r}
+#Colonization Period - Filter - expt 1
+
+phylum_expt1_col_ft <- ft_tax_filter(expt1_colonization, "Phylum")
+genus_expt1_col_ft <- ft_tax_filter(expt1_colonization, "Genus")
+species_expt1_col_ft <- ft_tax_filter(expt1_colonization, "Species")
+
+
+#Colonization Period - Filter - expt 2
+
+phylum_expt2_col_ft <- ft_tax_filter(expt2_colonization, "Phylum")
+genus_expt2_col_ft <- ft_tax_filter(expt2_colonization, "Genus")
+species_expt2_col_ft <- ft_tax_filter(expt2_colonization, "Species")
+
+
+#Colonization Period - Filter - expt 3
+
+phylum_expt3_col_ft <- ft_tax_filter(expt3_colonization, "Phylum")
+genus_expt3_col_ft <- ft_tax_filter(expt3_colonization, "Genus")
+species_expt3_col_ft <- ft_tax_filter(expt3_colonization, "Species")
+
+
+
+```
+
+```{r}
+#Gavage Period - Filter - expt 1
+
+phylum_expt1_gav_ft <- ft_tax_filter(expt1_gavage, "Phylum")
+genus_expt1_gav_ft <- ft_tax_filter(expt1_gavage, "Genus")
+species_expt1_gav_ft <- ft_tax_filter(expt1_gavage, "Species")
+
+
+#Gavage Period - Filter - expt 2
+
+phylum_expt2_gav_ft <- ft_tax_filter(expt2_gavage, "Phylum")
+genus_expt2_gav_ft <- ft_tax_filter(expt2_gavage, "Genus")
+species_expt2_gav_ft <- ft_tax_filter(expt2_gavage, "Species")
+
+
+#Gavage Period - Filter - expt 3
+
+phylum_expt3_gav_ft <- ft_tax_filter(expt3_gavage, "Phylum")
+genus_expt3_gav_ft <- ft_tax_filter(expt3_gavage, "Genus")
+species_expt3_gav_ft <- ft_tax_filter(expt3_gavage, "Species")
+
+
+#Gavage Period - Filter - expt 4 -UCB 
+
+phylum_expt4_UCBgav_ft <- ft_tax_filter(expt4_UCB_pc_gav, "Phylum")
+genus_expt4_UCBgav_ft <- ft_tax_filter(expt4_UCB_pc_gav, "Genus")
+species_expt4_UCBgav_ft <- ft_tax_filter(expt4_UCB_pc_gav, "Species")
+
+
+#Gavage Period - Filter - expt 4 -HB 
+
+
+phylum_expt4_HBgav_ft <- ft_tax_filter(expt4_HB_pc_gav, "Phylum")
+genus_expt4_HBgav_ft <- ft_tax_filter(expt4_HB_pc_gav, "Genus")
+species_expt4_HBgav_ft <- ft_tax_filter(expt4_HB_pc_gav, "Species")
+
+
+
+
+
+```
+
+
+
+```{r}
+
+#DSS Period - Filter - expt 1
+
+phylum_expt1_dss <- ft_tax_filter(expt1_dss, "Phylum")
+genus_expt1_dss_ft <- ft_tax_filter(expt1_dss, "Genus")
+species_expt1_dss_ft <- ft_tax_filter(expt1_dss, "Species")
+
+
+#DSS Period - Filter - expt 2
+
+phylum_expt2_dss_ft <- ft_tax_filter(expt2_dss, "Phylum")
+genus_expt2_dss_ft <- ft_tax_filter(expt2_dss, "Genus")
+species_expt2_dss_ft <- ft_tax_filter(expt2_dss, "Species")
+
+
+#DSS Period - Filter - expt 3
+phylum_expt3_dss_ft <- ft_tax_filter(expt3_dss, "Phylum")
+genus_expt3_dss_ft <- ft_tax_filter(expt3_dss, "Genus")
+species_expt3_dss_ft <- ft_tax_filter(expt3_dss, "Species")
+
+
+#DSS Period - Filter - expt 4 - UCB 
+phylum_expt4UCB_dss_ft <- ft_tax_filter(expt4_UCB_pc_dss, "Phylum")
+genus_expt4UCB_dss_ft <- ft_tax_filter(expt4_UCB_pc_dss, "Genus")
+species_expt4UCB_dss_ft <- ft_tax_filter(expt4_UCB_pc_dss, "Species")
+
+#DSS Period - Filter - expt 4 - HB 
+phylum_expt4HB_dss_ft <- ft_tax_filter(expt4_HB_pc_gav_dss, "Phylum")
+genus_expt4HB_dss_ft <- ft_tax_filter(expt4_HB_pc_gav_dss, "Genus")
+species_exptHB_dss_ft <- ft_tax_filter(expt4_HB_pc_gav_dss, "Species")
+
+
+
+```
+
+
+```{r}
+
+#Took ANCOM script and made it into a function and added code to generate .csv output with taxa info
+
+
+#1) Function to use ANCOM within each time period, accounting for cage as a random effect
+
+#main_var = 'Treatment'
+#rand_formula = '~ 1 | Cage'
+#group_var = 'NULL'
+
+
+#meta = metadata for given expt
+#ft = feature table for given experiment, time period, and taxa level
+#experiment_ft = feature table for entire experimet,will allow us to get taxa info 
+#name of csv for output
+#output will appear as a .csv in  /Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_fall_2018/R_scripts/outputs 
+
+ANCOM_treatment_cage <- function(meta, ft, experiment_ft, csv_name) {
+  setwd('/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/exported_qiime_artifacts/scripts')
+  source("ancom_v2.1.R")
+  meta_data = meta %>% rename(Sample.ID = sampleid)
+  feature_table = ft
+  sample_var = "Sample.ID"
+  group_var = NULL 
+  out_cut = 0.05; zero_cut = 0.90; lib_cut = 0; neg_lb = TRUE
+  prepro = feature_table_pre_process(feature_table, meta_data, sample_var, group_var, out_cut, zero_cut, lib_cut, neg_lb)
+  
+  feature_table = prepro$feature_table # Preprocessed feature table
+  meta_data = prepro$meta_data # Preprocessed metadata
+  struc_zero = prepro$structure_zeros # Structural zero info
+
+  control = lmeControl(maxIter = 100, msMaxIter = 100, opt = "optim")
+  main_var = 'Treatment'
+  p_adj_method = "BH"
+  alpha = 0.05
+  adj_formula = NULL
+  rand_formula = '~ 1| Cage' 
+  res = ANCOM(feature_table, meta_data, struc_zero, main_var, p_adj_method, alpha, adj_formula, rand_formula, control = control)
+  
+
+res$out <- arrange(res$out, desc(detected_0.6))
+  
+taxa_list <- as.data.frame(tax_table(experiment_ft))
+
+taxa_list <- rownames_to_column(taxa_list, var = "taxa_id") 
+
+taxa_output <- left_join(res$out, taxa_list, by = "taxa_id")
+
+
+
+
+setwd("/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/R_scripts/outputs")
+
+
+
+write.csv(taxa_output, csv_name)
+
+}
+
+
+
+
+#1) Function to use ANCOM including all data points within an experiment to see taxa that significantly alter between treatment groups over time periods
+
+
+
+#main_var = 'Treatment'*'Period'
+#rand_formula = '~ 1 | Cage'
+#group_var = 'NULL'
+
+
+#meta = metadata for given expt
+#ft = feature table for given experiment and taxa level
+#experiment_ft = feature table for entire experimet,will allow us to get taxa info 
+#name of csv for output
+#output will appear as a .csv in  /Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_fall_2018/R_scripts/outputs 
+
+ANCOM_treatment_x_period <- function(meta, ft, csv_name) {
+  setwd('/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_fall_2018/exported_qiime_artifacts/scripts')
+  source("ancom_v2.1.R")
+  meta_data = meta %>% rename(Sample.ID = sampleid)
+  feature_table = ft
+  sample_var = "Sample.ID"
+  group_var = NULL
+  out_cut = 0.05; zero_cut = 0.90; lib_cut = 0; neg_lb = TRUE
+  prepro = feature_table_pre_process(feature_table, meta_data, sample_var, group_var, out_cut, zero_cut, lib_cut, neg_lb)
+  
+  feature_table = prepro$feature_table # Preprocessed feature table
+  meta_data = prepro$meta_data # Preprocessed metadata
+  struc_zero = prepro$structure_zeros # Structural zero info
+
+  control = lmeControl(maxIter = 100, msMaxIter = 100, opt = "optim")
+  main_var = 'Treatment'*'Period'
+  p_adj_method = "BH"
+  alpha = 0.05
+  adj_formula = NULL
+  rand_formula = '~ 1| Cage' 
+  res = ANCOM(feature_table, meta_data, struc_zero, main_var, p_adj_method, alpha, adj_formula, rand_formula, control = control)
+  
+
+res$out <- arrange(res$out, desc(detected_0.6))
+  
+taxa_list <- as.data.frame(tax_table(ft))
+
+taxa_list <- rownames_to_column(taxa_list, var = "taxa_id") 
+
+taxa_output <- left_join(res$out, taxa_list, by = "taxa_id")
+
+
+
+
+setwd("/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/R_scripts/outputs")
+
+
+write.csv(taxa_output, csv_name)
+
+}
+
+
+```
+
+
+```{r}
+#Took ANCOM script and made it into a function and added code to generate .csv output with taxa info
+
+
+#3) Function to use ANCOM within each time period, accounting for cage as a random effect
+
+#This function is to compare the phage treatments in experiment 4
+
+#main_var = 'phage_treatment'
+#rand_formula = '~ 1 | Cage'
+#group_var = 'NULL'
+
+
+#meta = metadata for given expt
+#ft = feature table for given experiment, time period, and taxa level
+#experiment_ft = feature table for entire experimet,will allow us to get taxa info 
+#name of csv for output
+#output will appear as a .csv in  /Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_fall_2018/R_scripts/outputs 
+
+ANCOM_treatment_cage_expt4_phage <- function(meta, ft, experiment_ft, csv_name) {
+  setwd('/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/exported_qiime_artifacts/scripts')
+  source("ancom_v2.1.R")
+  meta_data = meta %>% rename(Sample.ID = sampleid)
+  feature_table = ft
+  sample_var = "Sample.ID"
+  group_var = NULL 
+  out_cut = 0.05; zero_cut = 0.90; lib_cut = 0; neg_lb = TRUE
+  prepro = feature_table_pre_process(feature_table, meta_data, sample_var, group_var, out_cut, zero_cut, lib_cut, neg_lb)
+  
+  feature_table = prepro$feature_table # Preprocessed feature table
+  meta_data = prepro$meta_data # Preprocessed metadata
+  struc_zero = prepro$structure_zeros # Structural zero info
+
+  control = lmeControl(maxIter = 100, msMaxIter = 100, opt = "optim")
+  main_var = 'phage_treatment'
+  p_adj_method = "BH"
+  alpha = 0.05
+  adj_formula = NULL
+  rand_formula = '~ 1| Cage' 
+  res = ANCOM(feature_table, meta_data, struc_zero, main_var, p_adj_method, alpha, adj_formula, rand_formula, control = control)
+  
+
+res$out <- arrange(res$out, desc(detected_0.6))
+  
+taxa_list <- as.data.frame(tax_table(experiment_ft))
+
+taxa_list <- rownames_to_column(taxa_list, var = "taxa_id") 
+
+taxa_output <- left_join(res$out, taxa_list, by = "taxa_id")
+
+
+
+
+setwd("/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/R_scripts/outputs")
+
+
+
+write.csv(taxa_output, csv_name)
+
+}
+
+```
+
+```{r}
+
+#4) Function to use ANCOM within each time period, accounting for cage as a random effect
+
+#This function is to compare the phage treatments in experiment 4
+
+#main_var = 'bac_treatment'
+#rand_formula = '~ 1 | Cage'
+#group_var = 'NULL'
+
+
+#meta = metadata for given expt
+#ft = feature table for given experiment, time period, and taxa level
+#experiment_ft = feature table for entire experimet,will allow us to get taxa info 
+#name of csv for output
+#output will appear as a .csv in  /Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_fall_2018/R_scripts/outputs 
+
+ANCOM_treatment_cage_expt4_bac <- function(meta, ft, experiment_ft, csv_name) {
+  setwd('/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/exported_qiime_artifacts/scripts')
+  source("ancom_v2.1.R")
+  meta_data = meta %>% rename(Sample.ID = sampleid)
+  feature_table = ft
+  sample_var = "Sample.ID"
+  group_var = NULL 
+  out_cut = 0.05; zero_cut = 0.90; lib_cut = 0; neg_lb = TRUE
+  prepro = feature_table_pre_process(feature_table, meta_data, sample_var, group_var, out_cut, zero_cut, lib_cut, neg_lb)
+  
+  feature_table = prepro$feature_table # Preprocessed feature table
+  meta_data = prepro$meta_data # Preprocessed metadata
+  struc_zero = prepro$structure_zeros # Structural zero info
+
+  control = lmeControl(maxIter = 100, msMaxIter = 100, opt = "optim")
+  main_var = 'bac_treatment'
+  p_adj_method = "BH"
+  alpha = 0.05
+  adj_formula = NULL
+  rand_formula = '~ 1| Cage' 
+  res = ANCOM(feature_table, meta_data, struc_zero, main_var, p_adj_method, alpha, adj_formula, rand_formula, control = control)
+  
+
+res$out <- arrange(res$out, desc(detected_0.6))
+  
+taxa_list <- as.data.frame(tax_table(experiment_ft))
+
+taxa_list <- rownames_to_column(taxa_list, var = "taxa_id") 
+
+taxa_output <- left_join(res$out, taxa_list, by = "taxa_id")
+
+
+
+
+setwd("/Users/anshul.sinha/Desktop/Sequencing_analyses/Rainin_16S/R_analyses/16S_all_expts/R_scripts/outputs")
+
+
+
+write.csv(taxa_output, csv_name)
+
+}
+
+```
+
+
+
+```{r}
+
+  
+  
+
+#expt 1 - Within each time period, looking for differences between treatment and accounting for cage as random effect (at species level)
+  
+ANCOM_treatment_cage(expt1_meta, species_expt1_col_ft, expt1, 'col-species-expt1.csv')
+
+ANCOM_treatment_cage(expt1_meta, species_expt1_gav_ft, expt1, 'gav-species-expt1.csv')
+
+ANCOM_treatment_cage(expt1_meta, species_expt1_dss_ft, expt1, 'dss-species-expt1.csv')
+
+
+
+#expt 1 - Within each time period, looking for differences between treatment and accounting for cage as random effect (at genus level)
+ANCOM_treatment_cage(expt1_meta, genus_expt1_gav_ft, expt1, 'col-genus-expt1.csv')
+
+ANCOM_treatment_cage(expt1_meta, genus_expt1_gav_ft, expt1, 'gav-genus-expt1.csv')
+
+ANCOM_treatment_cage(expt1_meta, genus_expt1_dss_ft, expt1, 'dss-genus-expt1.csv')
+
+
+
+#expt 2 - Within each time period, looking for differences between treatment and accounting for cage as random effect (at species level)
+
+ANCOM_treatment_cage(expt2_meta, species_expt2_col_ft, expt2, 'col-species-expt2.csv')
+
+ANCOM_treatment_cage(expt2_meta, species_expt2_gav_ft, expt2, 'gav-species-expt2.csv')
+
+ANCOM_treatment_cage(expt2_meta, species_expt2_dss_ft, expt2, 'dss-species-expt2.csv')
+
+
+#expt 2 - Within each time period, looking for differences between treatment and accounting for cage as random effect (at genus level)
+
+ANCOM_treatment_cage(expt2_meta, genus_expt2_col_ft, expt2, 'col-genus-expt2.csv')
+
+ANCOM_treatment_cage(expt2_meta, genus_expt2_gav_ft, expt2, 'gav-genus-expt2.csv')
+
+ANCOM_treatment_cage(expt2_meta, genus_expt2_dss_ft, expt2, 'dss-genus-expt2.csv')
+
+
+
+#expt 3 - Within each time period, looking for differences between treatment and accounting for cage as random effect (at species level)
+
+ANCOM_treatment_cage(expt3_meta, species_expt3_col_ft, expt3, 'col-species-expt3.csv')
+
+ANCOM_treatment_cage(expt3_meta, species_expt3_gav_ft, expt3, 'gav-species-expt3.csv')
+
+ANCOM_treatment_cage(expt3_meta, species_expt3_dss_ft, expt3, 'dss-species-expt3.csv')
+
+
+#expt 3 - Within each time period, looking for differences between treatment and accounting for cage as random effect (at genus level)
+
+ANCOM_treatment_cage(expt3_meta, genus_expt3_col_ft, expt3, 'col-genus-expt3.csv')
+
+ANCOM_treatment_cage(expt3_meta, genus_expt3_gav_ft, expt3, 'gav-genus-expt3.csv')
+
+ANCOM_treatment_cage(expt3_meta, genus_expt3_dss_ft, expt3, 'dss-genus-expt3.csv')
+
+
+
+
+#expt 4- Within each time period, differences between VLP treatment (accounting for cage as a random effect) - in different bacterial community backgrounds (at species level)
+
+ANCOM_treatment_cage_expt4_phage(expt4_meta_post_col, species_expt4_UCBgav_ft, expt4_UCB_pc, 'species-gav-UCB-expt4.csv')
+
+ANCOM_treatment_cage_expt4_phage(expt4_meta_post_col, species_expt4_HBgav_ft, expt4_HB_pc, 'species-gav-HB-expt4.csv')
+
+ANCOM_treatment_cage_expt4_phage(expt4_meta_post_col, species_expt4UCB_dss_ft, expt4_UCB_pc, 'species-dss-UCB-expt4.csv')
+
+ANCOM_treatment_cage_expt4_phage(expt4_meta_post_col, species_exptHB_dss_ft, expt4_HB_pc, 'species-dss-HB-expt4.csv')
+
+
+#expt 4- Within each time period, differences between VLP treatment (accounting for cage as a random effect) - in different bacterial community backgrounds (at species level)
+
+ANCOM_treatment_cage_expt4_bac(expt4_meta_post_col, species_expt4_ft_pc, expt4_post_col, 'species-bac-expt4.csv')
+
+```
+
+
+
+
+
+
+
+
+
+
+
